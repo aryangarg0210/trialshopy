@@ -1,10 +1,11 @@
 import { PrismaClient } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, bearer, emailOTP, jwt } from "better-auth/plugins";
+import { admin, bearer, emailOTP, jwt, phoneNumber } from "better-auth/plugins";
 import { MailService } from "src/mail/mail.service";
 import { emailOTPTemplate } from "src/mail/templates";
 import { config } from "./config";
+import { sendSms } from "./utils/sms.utils";
 
 const mailService = new MailService();
 
@@ -57,6 +58,17 @@ export const auth = betterAuth({
 			expiresIn: 300,
 			sendVerificationOnSignUp: true,
 			allowedAttempts: 5,
+		}),
+		phoneNumber({
+			async sendOTP({ phoneNumber: to, code }) {
+				await sendSms({ to, message: `Your TrialShopy OTP is ${code}` });
+			},
+			otpLength: 6,
+			expiresIn: 300,
+			signUpOnVerification: {
+				getTempEmail: (phone) => `${phone}@phone.trialshopy.local`,
+				getTempName: (phone) => phone,
+			},
 		}),
 		admin({
 			defaultRole: "customer",
