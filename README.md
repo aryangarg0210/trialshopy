@@ -1,6 +1,6 @@
-# Heizen Master Template
+# TrialShopy
 
-A production-ready full-stack monorepo — **NestJS 11** + **Next.js 16** — with passwordless auth, async email queue, a shared UI kit, and Prisma on PostgreSQL.
+A full-stack monorepo — **NestJS 11** + **Next.js 16** — with passwordless auth, async email queue, a shared UI kit, and Prisma on MongoDB.
 
 ---
 
@@ -12,7 +12,7 @@ A production-ready full-stack monorepo — **NestJS 11** + **Next.js 16** — wi
 | **Backend** | NestJS 11, TypeScript 5.9 |
 | **Frontend** | Next.js 16 (App Router), React 19, React Compiler |
 | **Auth** | Better Auth v1.6 — email OTP + Google OAuth |
-| **Database** | PostgreSQL + Prisma ORM (`@prisma/adapter-pg`) |
+| **Database** | MongoDB + Prisma ORM |
 | **Job Queue** | BullMQ (Redis) + Bull Board dashboard |
 | **Email** | Nodemailer (SMTP) with HTML templates |
 | **Styling** | Tailwind CSS 4 + `@repo/ui` (shadcn-derived) |
@@ -47,8 +47,8 @@ A production-ready full-stack monorepo — **NestJS 11** + **Next.js 16** — wi
 ### Prerequisites
 
 - Node.js ≥ 20, pnpm ≥ 11.5
-- PostgreSQL and Redis running locally
-- A [Heizen Studio](https://studio.heizen.work) project with secrets configured for your environment
+- Redis running locally
+- MongoDB running locally **as a replica set** (Prisma requires it). For local dev, start `mongod --replSet rs0` and initiate it once, or use Atlas (a replica set by default).
 
 ### 1. Install dependencies
 
@@ -56,41 +56,24 @@ A production-ready full-stack monorepo — **NestJS 11** + **Next.js 16** — wi
 pnpm install
 ```
 
-This installs [`@heizen-labs/secrets-sdk`](https://www.npmjs.com/package/@heizen-labs/secrets-sdk), which provides the `heizen-secrets` CLI used by dev and database scripts.
+### 2. Configure environment
 
-### 2. Configure Heizen Studio credentials
-
-Copy the example env files, then set **only** these three variables in **both** `apps/server/.env` and `apps/web/.env`:
+Copy the example env file and fill in the values:
 
 ```bash
 cp apps/server/.env.example apps/server/.env
-cp apps/web/.env.example apps/web/.env
 ```
 
-```env
-HEIZEN_STUDIO_API_KEY=your_api_key
-HEIZEN_STUDIO_PROJECT_ID=your_project_id
-HEIZEN_STUDIO_ENVIRONMENT_NAME=your_environment_name
-```
-
-To get your API key:
-
-1. Open [studio.heizen.work](https://studio.heizen.work) and select your project.
-2. Go to **Project Settings** → create a new API key with `secrets:read` permission.
-3. Copy the project ID and environment name from Studio into the variables above.
-
-You do **not** need to copy the remaining values from `.env.example` — those secrets (database URL, SMTP, auth keys, etc.) are fetched from Heizen Studio at runtime.
+All configuration is read from local `.env` files (loaded via `dotenv`). At minimum set `DATABASE_URL`, `BETTER_AUTH_SECRET`, and the Redis connection. See `apps/server/.env.example` for the full list. The database scripts in `packages/db` read `DATABASE_URL` from `apps/server/.env`.
 
 ### 3. Run the app
 
 ```bash
-pnpm db:migrate
+pnpm db:push    # sync the Prisma schema to MongoDB
 pnpm dev
 ```
 
-`pnpm dev` runs both apps through `heizen-secrets run`, which injects Studio secrets into the child process without writing them to disk.
-
-Backend: `http://localhost:3001` · Frontend: `http://localhost:3000` · Swagger: `http://localhost:3001/docs`
+Backend: `http://localhost:3001` · Swagger: `http://localhost:3001/docs`
 
 ---
 
@@ -291,19 +274,19 @@ await this.queue.add('sync', { userId });
 
 ## Database & Prisma
 
-The schema lives at `packages/db/prisma/schema.prisma` and is shared across the monorepo. The Prisma client is generated into `packages/db/generated/prisma/` and used only on the backend via `PrismaService`.
+The schema is split across multiple files under `packages/db/prisma/schema/` (merged by Prisma via `prisma.config.ts`) and is shared across the monorepo. The Prisma client is generated into `packages/db/generated/prisma/` and used only on the backend via `PrismaService`.
 
 ### Schema conventions
 
-- Use `@id @default(uuid()) @db.Uuid` for primary keys
+- Use `@id @default(auto()) @map("_id") @db.ObjectId` for primary keys
 - Add `@@index` for any field you filter by frequently
-- Use `onDelete: Cascade` on foreign keys where deleting the parent should remove children
+- Use `onDelete: Cascade` on relations where deleting the parent should remove children
 - Always include `createdAt` and `updatedAt` on application models
 
 ### After changing the schema
 
 ```bash
-pnpm db:migrate    # creates a migration file and applies it (dev)
+pnpm db:push       # syncs the schema to MongoDB (no migration files on Mongo)
 pnpm db:generate   # regenerates the Prisma client
 ```
 
@@ -383,8 +366,8 @@ pnpm dev          # start all apps
 pnpm build        # build all apps and packages
 pnpm typecheck    # TypeScript check across all packages
 pnpm lint:fix     # Biome lint + auto-fix
-pnpm db:migrate   # create + apply a dev migration
-pnpm db:deploy    # apply migrations in production
+pnpm db:push      # sync the Prisma schema to MongoDB
+pnpm db:generate  # regenerate the Prisma client
 pnpm db:studio    # Prisma Studio GUI
 ```
 
@@ -396,66 +379,11 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every PR to `main`: lint, ty
 
 ---
 
-## Secrets Management (Heizen Studio)
+## Environment & Secrets
 
-This template uses [`@heizen-labs/secrets-sdk`](https://www.npmjs.com/package/@heizen-labs/secrets-sdk) to load secrets from [Heizen Studio](https://studio.heizen.work) at runtime. You only commit three local credentials per app; everything else lives in Studio.
+Configuration is loaded from local `.env` files via [`dotenv`](https://www.npmjs.com/package/dotenv) — there is no external secrets service.
 
-### Required local env vars
+- **Backend** reads `apps/server/.env` (loaded by `import "dotenv/config"` in `apps/server/src/common/config.ts`).
+- **Database scripts** (`packages/db`) read the same `apps/server/.env` — `prisma.config.ts` loads it so `DATABASE_URL` is available to `prisma generate`, `db push`, and `studio`.
 
-Set these in `apps/server/.env` and `apps/web/.env`:
-
-| Variable | Description |
-|---|---|
-| `HEIZEN_STUDIO_API_KEY` | API key with `secrets:read` (sent as `x-api-key`) |
-| `HEIZEN_STUDIO_PROJECT_ID` | Your Heizen project ID |
-| `HEIZEN_STUDIO_ENVIRONMENT_NAME` | Target environment (e.g. `development`, `new-web-local`) |
-
-### How it works in this template
-
-Dev and database scripts wrap commands with `heizen-secrets run`:
-
-| Script | Command |
-|---|---|
-| `apps/server` dev | `heizen-secrets run -- nest start --watch` |
-| `apps/web` dev | `heizen-secrets run -- next dev` |
-| `packages/db` migrations | `heizen-secrets run -e ../../apps/server/.env -- prisma …` |
-
-When you run `pnpm dev` or `pnpm db:migrate`, the CLI:
-
-1. Reads `HEIZEN_STUDIO_*` from the app's `.env` (or `.env.local`)
-2. Fetches secrets from Heizen Studio for that project and environment
-3. Injects them into the spawned process only — never prints them, writes them to files, or mutates the parent shell
-
-### CLI usage
-
-```bash
-# Recommended — all three values from .env
-heizen-secrets run -- nest start --watch
-
-# Or pass values explicitly
-heizen-secrets run <projectId> <environment> --api-key <key> -- <command>
-```
-
-Lookup order: CLI flags → `process.env` → `.env.local` → `.env`.
-
-### Programmatic usage
-
-For custom scripts, use the SDK directly:
-
-```typescript
-import { SecretsClient } from "@heizen-labs/secrets-sdk";
-
-const client = new SecretsClient({
-  projectId: process.env.HEIZEN_STUDIO_PROJECT_ID,
-  environment: process.env.HEIZEN_STUDIO_ENVIRONMENT_NAME,
-  apiKey: process.env.HEIZEN_STUDIO_API_KEY,
-});
-
-await client.loadSecrets();
-```
-
-See the [package README](https://www.npmjs.com/package/@heizen-labs/secrets-sdk) for full CLI options and API reference.
-
----
-
-Built with ❤️ by [Heizen Studio](https://studio.heizen.work)
+Copy `apps/server/.env.example` to `apps/server/.env` and fill in the values. `.env` files are gitignored and must never be committed.
