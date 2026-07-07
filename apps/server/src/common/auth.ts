@@ -2,7 +2,14 @@ import { PrismaClient } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware } from "better-auth/api";
-import { admin, bearer, emailOTP, jwt, phoneNumber } from "better-auth/plugins";
+import {
+	admin,
+	bearer,
+	emailOTP,
+	jwt,
+	openAPI,
+	phoneNumber,
+} from "better-auth/plugins";
 import { MailService } from "src/mail/mail.service";
 import { emailOTPTemplate } from "src/mail/templates";
 import { config } from "./config";
@@ -94,6 +101,9 @@ export const auth = betterAuth({
 		}),
 		bearer(),
 		jwt(),
+		// Generates an OpenAPI schema for all /api/auth/* routes. Merged into the
+		// main Swagger doc in main.ts; also serves a Scalar UI at /api/auth/reference.
+		openAPI(),
 	],
 });
 
