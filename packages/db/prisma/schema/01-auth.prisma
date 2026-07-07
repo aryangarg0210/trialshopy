@@ -24,7 +24,9 @@ model User {
   emailVerified Boolean  @default(false) @map("email_verified")
   image         String?
 
-  // phoneNumber plugin (SMS OTP login)
+  // phoneNumber plugin (SMS OTP login). Uniqueness is enforced by a PARTIAL
+  // unique index (non-null only), created at startup in PrismaService — a plain
+  // @@unique would reject multiple email/Google users that have no phone yet.
   phoneNumber         String?  @map("phone_number")
   phoneNumberVerified Boolean  @default(false) @map("phone_number_verified")
 
@@ -44,7 +46,6 @@ model User {
   sellerProfile   SellerProfile?
 
   @@unique([email])
-  @@unique([phoneNumber])
   @@map("user")
 }
 

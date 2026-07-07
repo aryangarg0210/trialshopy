@@ -1,5 +1,5 @@
 import type { OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaClient } from "@repo/db";
 import { config } from "src/common/config";
 
@@ -18,6 +18,8 @@ export class PrismaService
 		});
 	}
 
+	private readonly logger = new Logger(PrismaService.name);
+
 	async onModuleInit() {
 		try {
 			await this.$connect();
@@ -25,9 +27,33 @@ export class PrismaService
 			console.error("Failed to connect to database:", error);
 			throw error;
 		}
+		await this.ensureIndexes();
 	}
 
 	async onModuleDestroy() {
 		await this.$disconnect();
+	}
+
+	// Indexes that Prisma cannot express in the Mongo schema. A partial unique
+	// index enforces phone-number uniqueness only when a phone is actually set,
+	// so multiple email/Google users without a phone can coexist.
+	private async ensureIndexes() {
+		try {
+			await this.$runCommandRaw({
+				createIndexes: "user",
+				indexes: [
+					{
+						key: { phone_number: 1 },
+						name: "user_phone_number_unique",
+						unique: true,
+						partialFilterExpression: { phone_number: { $type: "string" } },
+					},
+				],
+			});
+		} catch (error) {
+			this.logger.warn(
+				`Failed to ensure user phone-number index: ${error instanceof Error ? error.message : error}`,
+			);
+		}
 	}
 }
