@@ -15,10 +15,10 @@ import { AppService } from "./app.service";
 import { BullBoardAuthMiddleware } from "./bull-board.middleware";
 import { auth } from "./common/auth";
 import { config } from "./common/config";
+import { IdentityModule } from "./identity/identity.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
 import { QUEUES } from "./scheduler/scheduler.types";
-import { UsersModule } from "./users/users.module";
 
 @Module({
 	imports: [
@@ -87,7 +87,7 @@ import { UsersModule } from "./users/users.module";
 		),
 		PrismaModule,
 		AuthModule.forRoot({ auth }),
-		UsersModule,
+		IdentityModule,
 		SchedulerModule,
 	],
 	controllers: [AppController],
