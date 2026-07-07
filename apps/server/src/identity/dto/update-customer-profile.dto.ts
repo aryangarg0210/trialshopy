@@ -12,44 +12,47 @@ import {
 import { MediaDto } from "./media.dto";
 
 class PaymentDetailsDto {
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "HDFC Bank" })
 	@IsOptional()
 	@IsString()
 	bankName?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "MG Road, Bengaluru" })
 	@IsOptional()
 	@IsString()
 	bankAddress?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "50100123456789" })
 	@IsOptional()
 	@IsString()
 	accountNumber?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "HDFC0001234" })
 	@IsOptional()
 	@IsString()
 	ifscCode?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "asha@hdfcbank" })
 	@IsOptional()
 	@IsString()
 	custId?: string;
 
-	@ApiPropertyOptional({ enum: PaymentMethod })
+	@ApiPropertyOptional({ enum: PaymentMethod, example: PaymentMethod.upi })
 	@IsOptional()
 	@IsEnum(PaymentMethod)
 	method?: PaymentMethod;
 }
 
 export class UpdateCustomerProfileDto {
-	@ApiPropertyOptional({ enum: Gender })
+	@ApiPropertyOptional({ enum: Gender, example: Gender.female })
 	@IsOptional()
 	@IsEnum(Gender)
 	gender?: Gender;
 
-	@ApiPropertyOptional({ description: "ISO date string" })
+	@ApiPropertyOptional({
+		description: "ISO date string",
+		example: "1995-06-01",
+	})
 	@IsOptional()
 	@IsString()
 	dateOfBirth?: string;
@@ -60,7 +63,7 @@ export class UpdateCustomerProfileDto {
 	@Type(() => MediaDto)
 	profilePic?: MediaDto;
 
-	@ApiPropertyOptional({ type: [String] })
+	@ApiPropertyOptional({ type: [String], example: ["en", "hi"] })
 	@IsOptional()
 	@IsArray()
 	@IsString({ each: true })
@@ -72,7 +75,7 @@ export class UpdateCustomerProfileDto {
 	@Type(() => PaymentDetailsDto)
 	paymentDetails?: PaymentDetailsDto;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: false })
 	@IsOptional()
 	@IsBoolean()
 	thirdParty?: boolean;

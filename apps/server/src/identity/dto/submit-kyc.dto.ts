@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import {
 	IsArray,
@@ -9,40 +9,42 @@ import {
 } from "class-validator";
 
 class KycDocumentDto {
+	@ApiProperty({ example: "pan_card" })
 	@IsString()
 	name!: string;
 
+	@ApiProperty({ example: "https://cdn.trialshopy.com/kyc/pan.jpg" })
 	@IsUrl()
 	url!: string;
 }
 
 export class SubmitKycDto {
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "Asha Rao" })
 	@IsOptional()
 	@IsString()
 	fullName?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "123456789012" })
 	@IsOptional()
 	@IsString()
 	aadharNumber?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "ABCDE1234F" })
 	@IsOptional()
 	@IsString()
 	panNumber?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "29ABCDE1234F1Z5" })
 	@IsOptional()
 	@IsString()
 	gstin?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "HDFC0001234" })
 	@IsOptional()
 	@IsString()
 	ifscCode?: string;
 
-	@ApiPropertyOptional()
+	@ApiPropertyOptional({ example: "50100123456789" })
 	@IsOptional()
 	@IsString()
 	accountNumber?: string;

@@ -27,12 +27,12 @@ export class ListUsersQuery {
 	@Max(100)
 	limit = 20;
 
-	@ApiPropertyOptional({ enum: UserRole })
+	@ApiPropertyOptional({ enum: UserRole, example: UserRole.seller })
 	@IsOptional()
 	@IsEnum(UserRole)
 	role?: UserRole;
 
-	@ApiPropertyOptional({ description: "Filter by ban state" })
+	@ApiPropertyOptional({ description: "Filter by ban state", example: false })
 	@IsOptional()
 	@Transform(({ value }) => value === "true" || value === true)
 	@IsBoolean()
@@ -40,6 +40,7 @@ export class ListUsersQuery {
 
 	@ApiPropertyOptional({
 		description: "Search by name, email, or phone number",
+		example: "asha",
 	})
 	@IsOptional()
 	@IsString()
