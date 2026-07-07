@@ -1,8 +1,14 @@
 import { Body, Controller, Get, Patch, Post, Put } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+	ApiCreatedResponse,
+	ApiOkResponse,
+	ApiOperation,
+	ApiTags,
+} from "@nestjs/swagger";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
 import type { auth } from "../common/auth";
 import { RegisterSellerDto } from "./dto/register-seller.dto";
+import { SellerProfileResponseDto } from "./dto/responses/seller-profile.response";
 import { SubmitKycDto } from "./dto/submit-kyc.dto";
 import { UpdateSellerProfileDto } from "./dto/update-seller-profile.dto";
 import { SellerProfileService } from "./seller-profile.service";
@@ -16,6 +22,7 @@ export class SellerProfileController {
 	@ApiOperation({
 		summary: "Register as a seller (creates profile, sets role)",
 	})
+	@ApiCreatedResponse({ type: SellerProfileResponseDto })
 	register(
 		@Session() session: UserSession<typeof auth>,
 		@Body() dto: RegisterSellerDto,
@@ -25,12 +32,17 @@ export class SellerProfileController {
 
 	@Get("seller-profile")
 	@ApiOperation({ summary: "Get current user's seller profile" })
+	@ApiOkResponse({
+		type: SellerProfileResponseDto,
+		description: "The seller profile, or null if not a seller",
+	})
 	get(@Session() session: UserSession<typeof auth>) {
 		return this.sellerProfileService.get(session.user.id);
 	}
 
 	@Patch("seller-profile")
 	@ApiOperation({ summary: "Update current user's seller profile" })
+	@ApiOkResponse({ type: SellerProfileResponseDto })
 	update(
 		@Session() session: UserSession<typeof auth>,
 		@Body() dto: UpdateSellerProfileDto,
@@ -40,6 +52,7 @@ export class SellerProfileController {
 
 	@Put("seller-profile/kyc")
 	@ApiOperation({ summary: "Submit or replace seller KYC details" })
+	@ApiOkResponse({ type: SellerProfileResponseDto })
 	submitKyc(
 		@Session() session: UserSession<typeof auth>,
 		@Body() dto: SubmitKycDto,

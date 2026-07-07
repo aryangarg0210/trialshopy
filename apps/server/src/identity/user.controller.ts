@@ -7,10 +7,12 @@ import {
 	Patch,
 	Query,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Roles, Session, type UserSession } from "@thallesp/nestjs-better-auth";
 import type { auth } from "../common/auth";
 import { ListUsersQuery } from "./dto/list-users.query";
+import { MeResponseDto } from "./dto/responses/me.response";
+import { PaginatedUsersResponseDto } from "./dto/responses/paginated-users.response";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserService } from "./user.service";
 
@@ -21,12 +23,14 @@ export class UserController {
 
 	@Get("me")
 	@ApiOperation({ summary: "Current user with customer and seller profiles" })
+	@ApiOkResponse({ type: MeResponseDto })
 	getMe(@Session() session: UserSession<typeof auth>) {
 		return this.userService.getMe(session.user.id);
 	}
 
 	@Patch("me")
 	@ApiOperation({ summary: "Update current user's base fields" })
+	@ApiOkResponse({ type: MeResponseDto })
 	updateMe(
 		@Session() session: UserSession<typeof auth>,
 		@Body() dto: UpdateUserDto,
@@ -36,6 +40,7 @@ export class UserController {
 
 	@Delete("me")
 	@ApiOperation({ summary: "Deactivate current user's account" })
+	@ApiOkResponse({ schema: { example: { deactivated: true } } })
 	deactivateMe(@Session() session: UserSession<typeof auth>) {
 		return this.userService.deactivateSelf(session.user.id);
 	}
@@ -43,6 +48,7 @@ export class UserController {
 	@Get()
 	@Roles(["admin"])
 	@ApiOperation({ summary: "List users (admin)" })
+	@ApiOkResponse({ type: PaginatedUsersResponseDto })
 	list(@Query() query: ListUsersQuery) {
 		return this.userService.list(query);
 	}
@@ -50,6 +56,7 @@ export class UserController {
 	@Get(":id")
 	@Roles(["admin"])
 	@ApiOperation({ summary: "Get a user by id (admin)" })
+	@ApiOkResponse({ type: MeResponseDto })
 	getById(@Param("id") id: string) {
 		return this.userService.getById(id);
 	}
