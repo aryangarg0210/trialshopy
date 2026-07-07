@@ -9,9 +9,27 @@ import { auth } from "./common/auth";
 import { config } from "./common/config";
 import { GlobalExceptionFilter } from "./common/filter/global-exception.filter";
 
+// Auth routes the frontend actually uses. Better Auth generates 60+ internal
+// routes (JWKS, admin plumbing, OAuth variants) that would only confuse a client,
+// so only these are surfaced in Swagger.
+const EXPOSED_AUTH_PATHS = new Set([
+	"/sign-up/email",
+	"/sign-in/email",
+	"/sign-out",
+	"/get-session",
+	"/phone-number/send-otp",
+	"/phone-number/verify",
+	"/forget-password/email-otp",
+	"/email-otp/reset-password",
+	"/email-otp/send-verification-otp",
+	"/email-otp/verify-email",
+	"/update-user",
+	"/change-password",
+]);
+
 // Better Auth mounts /api/auth/* via a catch-all, so those routes don't show up
 // in NestJS's Swagger scan. Its openAPI plugin can generate their schema, which
-// we fold into the same /docs so signup/signin/etc. are visible in one place.
+// we fold (filtered) into the same /docs so signup/signin/etc. are visible.
 async function mergeAuthOpenApi(document: OpenAPIObject) {
 	try {
 		const authSchema = (await auth.api.generateOpenAPISchema()) as {
@@ -20,6 +38,7 @@ async function mergeAuthOpenApi(document: OpenAPIObject) {
 		};
 		const paths = document.paths as Record<string, unknown>;
 		for (const [path, def] of Object.entries(authSchema.paths ?? {})) {
+			if (!EXPOSED_AUTH_PATHS.has(path)) continue;
 			paths[`/api/auth${path}`] = def;
 		}
 		document.components ??= {};
