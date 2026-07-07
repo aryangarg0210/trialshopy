@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------------
 // better-auth models — identity & sessions.
 //
-// better-auth OWNS authentication (email/password, phone OTP, Google, biometric
-// passkeys). Domain data lives in CustomerProfile / SellerProfile (02-identity).
+// better-auth OWNS authentication (email/password, phone OTP, Google).
+// Domain data lives in CustomerProfile / SellerProfile (02-identity).
 //
 // NOTE: the exact plugin columns are ultimately reconciled by running
-// `npx @better-auth/cli generate` once the phoneNumber/passkey/bearer plugins
+// `npx @better-auth/cli generate` once the phoneNumber/bearer plugins
 // are wired in auth.ts. The fields below match that expected output.
 // ---------------------------------------------------------------------------
 
@@ -39,7 +39,6 @@ model User {
 
   sessions Session[]
   accounts Account[]
-  passkeys Passkey[]
 
   customerProfile CustomerProfile?
   sellerProfile   SellerProfile?
@@ -108,24 +107,4 @@ model Jwks {
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("jwks")
-}
-
-// passkey plugin — biometric / WebAuthn device credentials (DORMANT until the
-// passkey plugin is wired in auth.ts; kept here so the biometric follow-up is
-// a config change, not a schema migration).
-model Passkey {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  name         String?
-  publicKey    String   @map("public_key")
-  userId       String   @map("user_id") @db.ObjectId
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credentialID String   @map("credential_id")
-  counter      Int
-  deviceType   String   @map("device_type")
-  backedUp     Boolean  @map("backed_up")
-  transports   String?
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  @@index([userId])
-  @@map("passkey")
 }

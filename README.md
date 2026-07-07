@@ -122,7 +122,7 @@ const { data: session } = authClient.useSession();
 // session.user → { id, name, email, image }
 ```
 
-To add a frontend Better Auth plugin (e.g. organization, passkey), add it to `authClient` in `apps/web/src/lib/auth-client.ts` alongside the existing `emailOTPClient()`.
+To add a frontend Better Auth plugin (e.g. organization), add it to `authClient` in `apps/web/src/lib/auth-client.ts` alongside the existing `emailOTPClient()`.
 
 ---
 

@@ -15,8 +15,6 @@ const prismaClient = new PrismaClient({
 	datasourceUrl: config.urls.db,
 });
 
-// Biometric (passkey) is intentionally deferred — no legacy contract to match
-// and it needs WebAuthn integration on the mobile client. Added in a later pass.
 export const auth = betterAuth({
 	database: prismaAdapter(prismaClient, {
 		provider: "mongodb",
