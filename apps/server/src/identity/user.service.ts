@@ -9,6 +9,8 @@ const withProfiles = {
 	sellerProfile: true,
 } satisfies Prisma.UserInclude;
 
+const SELF_DEACTIVATION_REASON = "Account deactivated by user";
+
 @Injectable()
 export class UserService {
 	constructor(private readonly prisma: PrismaService) {}
@@ -30,6 +32,10 @@ export class UserService {
 
 	async deactivateSelf(userId: string) {
 		await this.prisma.$transaction([
+			this.prisma.user.update({
+				where: { id: userId },
+				data: { banned: true, banReason: SELF_DEACTIVATION_REASON },
+			}),
 			this.prisma.customerProfile.updateMany({
 				where: { userId },
 				data: { status: ProfileStatus.inactive },
@@ -38,8 +44,9 @@ export class UserService {
 				where: { userId },
 				data: { status: ProfileStatus.inactive },
 			}),
+			this.prisma.session.deleteMany({ where: { userId } }),
 		]);
-		return { status: ProfileStatus.inactive };
+		return { deactivated: true };
 	}
 
 	async list(query: ListUsersQuery) {
