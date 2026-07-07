@@ -10,5 +10,3 @@ allowBuilds:
   prisma: false
   sharp: true
   unrs-resolver: false
-minimumReleaseAgeExclude:
-  - '@heizen-labs/secrets-sdk'
