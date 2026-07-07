@@ -1,0 +1,149 @@
+// ---------------------------------------------------------------------------
+// Engagement: Review, StoreReview, Reel (unified), Notification, Faq,
+// ContactUs, Header, SponsoredProduct, Banner.
+//
+// Consolidation: customerReel.model + reel.model -> single Reel (authorType).
+// ---------------------------------------------------------------------------
+
+model Review {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @map("user_id") @db.ObjectId
+  productId  String   @map("product_id") @db.ObjectId
+  reviewText String   @map("review_text")
+  pictures   Media[]
+  rating     Float
+  likeIds    String[] @map("like_ids") @db.ObjectId
+  dislikeIds String[] @map("dislike_ids") @db.ObjectId
+  status     GenericStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@index([userId])
+  @@map("review")
+}
+
+model StoreReview {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @map("user_id") @db.ObjectId
+  storeId    String   @map("store_id") @db.ObjectId
+  reviewText String   @map("review_text")
+  rating     Float
+  status     GenericStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([storeId])
+  @@map("store_review")
+}
+
+enum ReelAuthorType {
+  customer
+  seller
+  store
+}
+
+type ReelComment {
+  userId    String   @db.ObjectId
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Reel {
+  id         String         @id @default(auto()) @map("_id") @db.ObjectId
+  authorType ReelAuthorType @default(customer) @map("author_type")
+  authorId   String         @map("author_id") @db.ObjectId // user or seller id
+  storeId    String?        @map("store_id") @db.ObjectId
+  video      String
+  caption    String?
+  type       String         @default("customer")
+  likeIds    String[]       @map("like_ids") @db.ObjectId
+  dislikeIds String[]       @map("dislike_ids") @db.ObjectId
+  comments   ReelComment[]
+  shares     Int            @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([authorId])
+  @@index([storeId])
+  @@map("reel")
+}
+
+enum NotificationStatus {
+  read
+  unread
+}
+
+model Notification {
+  id      String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String             @map("user_id") @db.ObjectId
+  message String
+  status  NotificationStatus @default(unread)
+  sendAt  DateTime           @default(now()) @map("send_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("notification")
+}
+
+model Faq {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  question String
+  answer   String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("faq")
+}
+
+model ContactUs {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  firstName  String   @map("first_name")
+  lastName   String   @map("last_name")
+  email      String
+  phone      String
+  message    String
+  attachments String[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contact_us")
+}
+
+model Header {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  productIds    String[] @map("product_ids") @db.ObjectId
+  subcategoryId String   @map("subcategory_id") @db.ObjectId
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([subcategoryId])
+  @@map("header")
+}
+
+model SponsoredProduct {
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  productId     String @map("product_id") @db.ObjectId
+  categoryId    String @map("category_id") @db.ObjectId
+  subcategoryId String @map("subcategory_id") @db.ObjectId
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([subcategoryId])
+  @@map("sponsored_product")
+}
+
+model Banner {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  url      String
+  category String @unique
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("banner")
+}

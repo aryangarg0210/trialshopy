@@ -1,0 +1,244 @@
+// ---------------------------------------------------------------------------
+// Catalog: Category (self-referencing hierarchy), Brand, Store, Product,
+// ProductVariant.
+//
+// Consolidations:
+//  - category.model + category-sub.model  -> Category self-hierarchy (parentId)
+//  - product.model (x2) + add-product.mode -> Product + ProductVariant
+//  - clothing.model / arrival.model        -> folded into Product (flags/category)
+//  - store offers embedded array           -> standalone Offer (05-commerce)
+// ---------------------------------------------------------------------------
+
+enum CatalogStatus {
+  active
+  inactive
+}
+
+type CategoryAttribute {
+  name    String
+  type    String // e.g. "select", "text"
+  options String[]
+}
+
+model Category {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  image       Media?
+  featured    Boolean       @default(false)
+  discount    Float         @default(0)
+  status      CatalogStatus @default(active)
+  attributes  CategoryAttribute[]
+
+  // self-referencing hierarchy (replaces separate SubCategory model)
+  parentId String?    @map("parent_id") @db.ObjectId
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children Category[] @relation("CategoryHierarchy")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId])
+  @@map("category")
+}
+
+model Brand {
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  description      String?
+  logo             Media?
+  video            Media?
+  categoryIds      String[]      @map("category_ids") @db.ObjectId
+  isPopular        Boolean       @default(false) @map("is_popular")
+  totalProductsSold Int          @default(0) @map("total_products_sold")
+  status           CatalogStatus @default(active)
+
+  products Product[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("brand")
+}
+
+type OpeningHour {
+  dayOfWeek String
+  openTime  String
+  closeTime String
+}
+
+type Rating {
+  count   Int   @default(0)
+  average Float @default(0)
+}
+
+enum StoreVerification {
+  submitted
+  verified
+  failed
+  processing
+}
+
+model Store {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  sellerId    String        @map("seller_id") @db.ObjectId
+  seller      SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  storeName        String
+  storeDescription String?
+  gstId            String?           @map("gst_id")
+  images           Media[]
+  status           CatalogStatus     @default(active)
+  verification     StoreVerification @default(submitted)
+  categoryIds      String[]          @map("category_ids") @db.ObjectId
+
+  rating         Rating?
+  reviewCount    Int           @default(0) @map("review_count")
+  followerCount  Int           @default(0) @map("follower_count")
+  followerIds    String[]      @map("follower_ids") @db.ObjectId
+  openingHours   OpeningHour[]
+  location       GeoPoint?
+
+  // flattened store address (legacy seller-admin store carried these inline)
+  addressLine String? @map("address_line")
+  city        String?
+  pincode     String?
+  landmark    String?
+  state       String?
+  country     String? @default("India")
+
+  products Product[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sellerId])
+  @@map("store")
+}
+
+type Dimensions {
+  weight String?
+  height String?
+  length String?
+  width  String?
+  other  String?
+}
+
+type Seo {
+  metaTitle       String?
+  metaKeywords    String[]
+  metaDescription String?
+}
+
+// Tax / regulatory identifiers carried on a product (seller-admin backend).
+type Compliance {
+  gstNumber  String?
+  sgstNumber String?
+  isNumber   String? // ISI / IS number
+  cmlNumber  String?
+}
+
+model Product {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  storeId     String? @map("store_id") @db.ObjectId
+  store       Store?  @relation(fields: [storeId], references: [id])
+  sellerId    String? @map("seller_id") @db.ObjectId
+  brandId     String? @map("brand_id") @db.ObjectId
+  brand       Brand?  @relation(fields: [brandId], references: [id])
+
+  // primary category + additional categories
+  categoryId  String?  @map("category_id") @db.ObjectId
+  categoryIds String[] @map("category_ids") @db.ObjectId
+
+  productName      String
+  shortDescription String?
+  fullDescription  String?
+  status           CatalogStatus @default(active)
+  tags             String[]
+  media            Media[]
+
+  // base pricing (variants may override)
+  basePrice  Float   @map("base_price")
+  mrp        Float?
+  discount   Float   @default(0)
+  isDiscount Boolean @default(true) @map("is_discount")
+
+  // simple inventory (variant-level stock lives on ProductVariant)
+  inStock Boolean @default(true) @map("in_stock")
+  stock   Int     @default(0)
+
+  orderMinQuantity Int? @map("order_min_quantity")
+  orderMaxQuantity Int? @map("order_max_quantity")
+
+  // rental (legacy seller-admin forRent/rentPerHour)
+  forRent     Boolean @default(false) @map("for_rent")
+  rentPerHour Float   @default(0) @map("rent_per_hour")
+
+  // descriptive
+  manufacturer    String?
+  manufacturerDrop String? @map("manufacturer_drop")
+  countryOfOrigin String?  @map("country_of_origin")
+  material        String?
+  color           String?
+  hsnCode         String?  @map("hsn_code")
+  compliance      Compliance?
+  publisher       String?
+  language        String?
+  features        String[]
+  attributes      KeyValue[]
+  specifications  KeyValue[]
+  dimensions      Dimensions?
+  seo             Seo?
+  rating          Rating?
+
+  // fulfilment / lifecycle
+  shippingCharge  Float     @default(0) @map("shipping_charge")
+  manufactureDate DateTime? @map("manufacture_date")
+  expireDate      DateTime? @map("expire_date")
+  availableFrom   DateTime? @map("available_from")
+  availableTo     DateTime? @map("available_to")
+
+  // merchandising flags (consolidated from both backends)
+  showOnHome    Boolean @default(false) @map("show_on_home")
+  markNew       Boolean @default(false) @map("mark_new")
+  reviewAllowed Boolean @default(true) @map("review_allowed")
+  isNewWeekly   Boolean @default(false) @map("is_new_weekly")
+
+  relatedProductIds String[] @map("related_product_ids") @db.ObjectId
+
+  variants ProductVariant[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([storeId])
+  @@index([brandId])
+  @@index([categoryId])
+  @@map("product")
+}
+
+model ProductVariant {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  productId String  @map("product_id") @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sku      String?
+  skuId    String? @map("sku_id")
+  color    String?
+  size     String?
+  price    Float
+  mrp      Float?
+  trialshopyPrice Float? @map("trialshopy_price")
+  defectivePrice  Float? @map("defective_price")
+  discount Float   @default(0)
+  stock    Int     @default(0)
+  media    Media[]
+  status   CatalogStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([sku])
+  @@index([productId])
+  @@map("product_variant")
+}

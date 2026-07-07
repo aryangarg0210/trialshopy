@@ -1,0 +1,43 @@
+// ---------------------------------------------------------------------------
+// Ops: seller support Tickets, CourierPartner config.
+// ---------------------------------------------------------------------------
+
+model Ticket {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  issueRegarding   String?  @map("issue_regarding")
+  sellerName       String?  @map("seller_name")
+  sellerId         String?  @map("seller_id") @db.ObjectId
+  storeId          String?  @map("store_id") @db.ObjectId
+  problemStatement String?  @map("problem_statement")
+  phoneNumber      String?  @map("phone_number")
+  images           String[]
+  resolved         Boolean  @default(false)
+  status           String   @default("")
+  responseFromAdmin String? @default("") @map("response_from_admin")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sellerId])
+  @@map("ticket")
+}
+
+enum CourierPreference {
+  recommended
+  custom
+}
+
+model CourierPartner {
+  id                   String            @id @default(auto()) @map("_id") @db.ObjectId
+  preference           CourierPreference @default(recommended)
+  courierPartner       String            @map("courier_partner")
+  reverseShippingCharge Float            @default(0) @map("reverse_shipping_charge")
+  avgReturnTimeDays    Int               @default(0) @map("avg_return_time_days")
+  claimsRaised         Int               @default(0) @map("claims_raised")
+  claimApprovalPercentage Float          @map("claim_approval_percentage")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("courier_partner")
+}

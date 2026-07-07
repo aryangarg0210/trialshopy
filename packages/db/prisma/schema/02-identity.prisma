@@ -1,0 +1,102 @@
+// ---------------------------------------------------------------------------
+// Domain identity profiles (1:1 with better-auth User).
+// Consolidates legacy: user.model + seller.model (x2) + registerSeller.model
+// + verification.model (KYC) into two clean profiles.
+// ---------------------------------------------------------------------------
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum ProfileStatus {
+  active
+  inactive
+  pending
+}
+
+enum PaymentMethod {
+  bank
+  upi
+  card
+}
+
+// Bank / payout details (embedded).
+type PaymentDetails {
+  bankName      String?
+  bankAddress   String?
+  accountNumber String?
+  ifscCode      String?
+  custId        String?
+  method        PaymentMethod?
+}
+
+// Seller KYC (embedded) — merges verification.model + registerSeller docs.
+type KycDocument {
+  name String
+  url  String
+}
+
+type KycDetails {
+  status        ProfileStatus @default(pending)
+  aadharNumber  String?
+  panNumber     String?
+  gstin         String?
+  ifscCode      String?
+  accountNumber String?
+  fullName      String?
+  documents     KycDocument[]
+}
+
+model CustomerProfile {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @map("user_id") @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gender         Gender?
+  dateOfBirth    String?         @map("date_of_birth")
+  profilePic     Media?
+  languages      String[]
+  status         ProfileStatus   @default(active)
+  paymentDetails PaymentDetails?
+  thirdParty     Boolean         @default(false) @map("third_party")
+
+  // wishlist of product ids (kept as a plain ObjectId array; populated in-service)
+  wishlistIds String[] @map("wishlist_ids") @db.ObjectId
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("customer_profile")
+}
+
+model SellerProfile {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @map("user_id") @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sellerCode           String?     @map("seller_code") // legacy human-readable sellerIds
+  firstName            String
+  middleName           String?
+  lastName             String
+  alternatePhoneNumber String?     @map("alternate_phone_number")
+  accessLevel          String      @default("1") @map("access_level")
+  profilePic           Media?
+  languages            String[]
+  status               ProfileStatus @default(active)
+
+  kyc       KycDetails?
+  isBlocked Boolean     @default(false) @map("is_blocked")
+  qrCode    String?     @map("qr_code")
+
+  uniqueVisitors Int @default(0) @map("unique_visitors")
+  totalVisitors  Int @default(0) @map("total_visitors")
+
+  stores Store[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("seller_profile")
+}

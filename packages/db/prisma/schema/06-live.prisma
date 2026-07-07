@@ -1,0 +1,121 @@
+// ---------------------------------------------------------------------------
+// Live / meetings: Chat, LiveChat + LiveMessage, Meeting, MeetRequest,
+// LiveDemo.
+// ---------------------------------------------------------------------------
+
+// Generic support/inbox chat (embedded message thread).
+type ChatMessage {
+  sender      String
+  content     String?
+  subject     String?
+  attachment  String?
+  file        String?
+  description String?
+  timestamp   DateTime @default(now())
+}
+
+model Chat {
+  id       String        @id @default(auto()) @map("_id") @db.ObjectId
+  messages ChatMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("chat")
+}
+
+// Real-time 1:1 live chat (messages in their own collection for scale).
+model LiveChat {
+  id       String        @id @default(auto()) @map("_id") @db.ObjectId
+  senderId String        @map("sender_id") @db.ObjectId
+  receiverId String      @map("receiver_id") @db.ObjectId
+  messages LiveMessage[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([senderId, receiverId])
+  @@map("live_chat")
+}
+
+model LiveMessage {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  liveChatId String   @map("live_chat_id") @db.ObjectId
+  liveChat   LiveChat @relation(fields: [liveChatId], references: [id], onDelete: Cascade)
+  msgByUserId String  @map("msg_by_user_id") @db.ObjectId
+  text       String   @default("")
+  imageUrl   String   @default("") @map("image_url")
+  videoUrl   String   @default("") @map("video_url")
+  seen       Boolean  @default(false)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([liveChatId])
+  @@map("live_message")
+}
+
+enum MeetingStatus {
+  scheduled
+  ongoing
+  completed
+  cancelled
+}
+
+model Meeting {
+  id                  String        @id @default(auto()) @map("_id") @db.ObjectId
+  title               String
+  status              MeetingStatus @default(scheduled)
+  date                DateTime
+  time                String
+  zoomMeetingId       String        @map("zoom_meeting_id")
+  zoomMeetingPassword String        @map("zoom_meeting_password")
+  sellerId            String        @map("seller_id") @db.ObjectId
+  storeId             String        @map("store_id") @db.ObjectId
+  userIds             String[]      @map("user_ids") @db.ObjectId
+  productIds          String[]      @map("product_ids") @db.ObjectId
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([storeId])
+  @@map("meeting")
+}
+
+enum MeetRequestStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+model MeetRequest {
+  id         String            @id @default(auto()) @map("_id") @db.ObjectId
+  purpose    String
+  userId     String            @map("user_id") @db.ObjectId
+  storeId    String            @map("store_id") @db.ObjectId
+  productIds String[]          @map("product_ids") @db.ObjectId
+  date       DateTime
+  time       String
+  status     MeetRequestStatus @default(pending)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([storeId])
+  @@map("meet_request")
+}
+
+model LiveDemo {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  customerId String    @map("customer_id") @db.ObjectId
+  storeId    String?   @map("store_id") @db.ObjectId
+  itemIds    String[]  @map("item_ids") @db.ObjectId // product ids
+  startTime  DateTime  @default(now()) @map("start_time")
+  endTime    DateTime? @map("end_time")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([customerId])
+  @@map("live_demo")
+}

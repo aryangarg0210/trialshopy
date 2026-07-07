@@ -1,0 +1,325 @@
+// ---------------------------------------------------------------------------
+// Commerce: Address, Cart, Order, SubOrder, Payment, Coupon system, Offer,
+// Commission.
+//
+// Consolidations / fixes:
+//  - order.model (x2) reconciled; shippingAddress kept as an embedded snapshot
+//  - suborder.model (x2) reconciled; delivery/status enums normalised
+//    (legacy had "out_for_delivery" vs "out for delivery")
+//  - coupon.model + domain.model + studentCoupon.model -> Coupon + CouponDomain
+//    + StudentVerification
+//  - store.offers[] + offer.model + brand.offer -> single Offer model
+// ---------------------------------------------------------------------------
+
+enum AddressOwnerType {
+  user
+  seller
+  store
+}
+
+enum AddressType {
+  home
+  work
+}
+
+enum GenericStatus {
+  active
+  inactive
+}
+
+model Address {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  ownerId   String           @map("owner_id") @db.ObjectId
+  ownerType AddressOwnerType  @map("owner_type")
+  type      AddressType?
+  status    GenericStatus     @default(active)
+
+  fullName       String?
+  phoneNumber    String?  @map("phone_number")
+  alternatePhone String?  @map("alternate_phone")
+  addressLine    String?  @map("address_line")
+  city           String
+  pincode        String
+  landmark       String?
+  state          String
+  country        String   @default("India")
+  location       GeoPoint? // 2dsphere index created out-of-band (Prisma limitation)
+  lastUsedAt     DateTime? @map("last_used_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId, ownerType])
+  @@map("address")
+}
+
+type CartItem {
+  productId String  @db.ObjectId
+  variantId String? @db.ObjectId
+  quantity  Int     @default(1)
+  size      String?
+}
+
+model Cart {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  customerId String     @unique @map("customer_id") @db.ObjectId
+  addressId  String?    @map("address_id") @db.ObjectId
+  items      CartItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("cart")
+}
+
+// Snapshot of the delivery address at order time (immutable copy).
+type ShippingSnapshot {
+  fullName       String?
+  phoneNumber    String?
+  alternatePhone String?
+  addressLine    String?
+  city           String
+  pincode        String
+  landmark       String?
+  state          String
+  country        String @default("India")
+}
+
+// Coupon applied at checkout (snapshot).
+type CouponSnapshot {
+  couponType CouponType?
+  code       String?
+  email      String?
+  studentId  String?
+  discount   Float?
+}
+
+// Payment transaction entry (embedded; Payment model tracks store payouts).
+type PaymentTxn {
+  transactionId String?
+  totalAmount   Float?
+  paymentDate   DateTime?
+  status        PaymentTxnStatus?
+}
+
+enum PaymentTxnStatus {
+  pending
+  success
+  failed
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+  returned
+  refunded
+}
+
+model Order {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  customerId String @map("customer_id") @db.ObjectId
+
+  totalPrice      Float
+  phoneNumber     String?          @map("phone_number")
+  shippingAddress ShippingSnapshot
+  coupon          CouponSnapshot?
+  payment         PaymentTxn[]
+
+  status      OrderStatus @default(pending)
+  rateProduct Boolean     @default(false) @map("rate_product")
+
+  exchangeReturnWindowClosedOn DateTime? @map("exchange_return_window_closed_on")
+
+  subOrders SubOrder[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([customerId])
+  @@map("order")
+}
+
+enum SubOrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+  returned
+  refunded
+}
+
+enum DeliveryStatus {
+  in_transit
+  out_for_delivery
+  out_for_takeaway
+  delivered
+  lost
+}
+
+enum FulfilmentStage {
+  placed
+  packed
+  dispatched
+  out_for_delivery
+  delivered
+  returned
+  refunded
+  cancelled
+}
+
+type StatusUpdate {
+  stage     FulfilmentStage
+  timestamp DateTime        @default(now())
+}
+
+model SubOrder {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String  @map("order_id") @db.ObjectId
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String  @map("product_id") @db.ObjectId
+  variantId String? @map("variant_id") @db.ObjectId
+  storeId   String? @map("store_id") @db.ObjectId
+  sellerId  String? @map("seller_id") @db.ObjectId
+  customerId String @map("customer_id") @db.ObjectId
+
+  skuId    String?
+  size     String?
+  quantity Int     @default(1)
+  mrp      Float?
+  finalPrice Float?
+
+  returnLastDate DateTime? @map("return_last_date")
+
+  status         SubOrderStatus @default(pending)
+  deliveryStatus DeliveryStatus? @map("delivery_status")
+  statusUpdates  StatusUpdate[]
+
+  deliveryPartner   String? @map("delivery_partner")
+  deliveryPrice     Float?  @map("delivery_price")
+  totalAfterDelivery Float? @map("total_after_delivery")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([storeId])
+  @@index([productId])
+  @@map("suborder")
+}
+
+model Payment {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  storeId    String? @map("store_id") @db.ObjectId
+  suborderId String? @map("suborder_id") @db.ObjectId
+
+  totalItems   Int?          @map("total_items")
+  balance      Float?
+  totalRevenue Float?        @map("total_revenue")
+  finalPrice   Float?        @map("final_price")
+  sgst         Float?
+  cgst         Float?
+  status       GenericStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([storeId])
+  @@map("payment")
+}
+
+// --- Coupon system ----------------------------------------------------------
+enum CouponType {
+  college
+  school
+  itsector
+  coupon
+}
+
+enum CouponStatus {
+  active
+  inactive
+}
+
+model Coupon {
+  id                    String       @id @default(auto()) @map("_id") @db.ObjectId
+  code                  String       @unique
+  data                  String?
+  discount              Float
+  validFrom             DateTime     @map("valid_from")
+  validTo               DateTime     @map("valid_to")
+  minimumPurchaseAmount Float        @default(0) @map("minimum_purchase_amount")
+  status                CouponStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("coupon")
+}
+
+// Email-domain based discounts (college/school/itsector).
+model CouponDomain {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  couponType CouponType   @map("coupon_type")
+  domain     String
+  discount   Float
+  status     CouponStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([domain])
+  @@map("coupon_domain")
+}
+
+// Student ID / school verification uploads for student coupons.
+model StudentVerification {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String     @map("user_id") @db.ObjectId
+  couponType CouponType @default(school) @map("coupon_type")
+  document   Media
+  status     CouponStatus @default(inactive)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("student_verification")
+}
+
+// Single Offer model (replaces store.offers[] + offer.model + brand.offer).
+model Offer {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  storeId     String? @map("store_id") @db.ObjectId
+  brandId     String? @map("brand_id") @db.ObjectId
+  title       String
+  description String?
+  discount    Float
+  applicableProductIds String[] @map("applicable_product_ids") @db.ObjectId
+  validFrom   DateTime @map("valid_from")
+  validUntil  DateTime @map("valid_until")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([storeId])
+  @@map("offer")
+}
+
+model Commission {
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  productId  String        @map("product_id") @db.ObjectId
+  commission Float
+  datedFrom  DateTime      @map("dated_from")
+  datedTo    DateTime      @map("dated_to")
+  status     GenericStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([productId])
+  @@map("commission")
+}

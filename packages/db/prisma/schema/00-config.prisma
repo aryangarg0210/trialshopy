@@ -1,0 +1,39 @@
+// ---------------------------------------------------------------------------
+// Prisma config + shared embedded types (MongoDB)
+//
+// Output path is ../../generated/prisma because this file lives one level
+// deeper (prisma/schema/) than the single-file template did (prisma/).
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider   = "prisma-client-js"
+  output     = "../../generated/prisma"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// --- Shared embedded (composite) types --------------------------------------
+// One consistent media shape everywhere, replacing the legacy chaos of
+// { filename, url } vs { public_id, url } vs bare String.
+type Media {
+  url      String
+  publicId String?
+}
+
+// GeoJSON point for 2dsphere geo queries. NOTE: Prisma cannot declare a
+// `2dsphere` index; it is created out-of-band via a Mongo command in a
+// migration/bootstrap step (see docs). Stored shape stays GeoJSON-compatible.
+type GeoPoint {
+  type        String  @default("Point")
+  coordinates Float[] // [lng, lat]
+}
+
+// Generic key/value pair used by product attributes & specifications.
+type KeyValue {
+  title String
+  value String
+}
