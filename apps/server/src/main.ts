@@ -38,8 +38,8 @@ async function bootstrap() {
 	app.useLogger(app.get(Logger));
 
 	const swaggerConfig = new DocumentBuilder()
-		.setTitle("Heizen Template API")
-		.setDescription("Heizen Template API Documentation")
+		.setTitle("TrialShopy API")
+		.setDescription("TrialShopy API Documentation")
 		.setVersion("1.0")
 		.addCookieAuth("better-auth.session_token")
 		.build();
