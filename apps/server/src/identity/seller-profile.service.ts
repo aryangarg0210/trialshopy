@@ -18,6 +18,15 @@ export class SellerProfileService {
 	}
 
 	async register(userId: string, dto: RegisterSellerDto) {
+		const user = await this.prisma.user.findUnique({
+			where: { id: userId },
+			select: { role: true },
+		});
+		if (user?.role !== UserRole.customer)
+			throw new ConflictException(
+				"Only a customer account can register as a seller.",
+			);
+
 		const existing = await this.prisma.sellerProfile.findUnique({
 			where: { userId },
 		});
