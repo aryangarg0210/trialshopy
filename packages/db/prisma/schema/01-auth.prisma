@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // better-auth models — identity & sessions.
 //
-// better-auth OWNS authentication (email/password, phone OTP, Google).
+// better-auth OWNS authentication (email/password, phone OTP).
 // Domain data lives in CustomerProfile / SellerProfile (02-identity).
 //
 // NOTE: the exact plugin columns are ultimately reconciled by running
@@ -26,7 +26,7 @@ model User {
 
   // phoneNumber plugin (SMS OTP login). Uniqueness is enforced by a PARTIAL
   // unique index (non-null only), created at startup in PrismaService — a plain
-  // @@unique would reject multiple email/Google users that have no phone yet.
+  // @@unique would reject multiple email/password users that have no phone yet.
   phoneNumber         String?  @map("phone_number")
   phoneNumberVerified Boolean  @default(false) @map("phone_number_verified")
 

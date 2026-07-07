@@ -95,12 +95,6 @@ export const auth = betterAuth({
 		bearer(),
 		jwt(),
 	],
-	socialProviders: {
-		google: {
-			clientId: config.google.clientId,
-			clientSecret: config.google.clientSecret,
-		},
-	},
 });
 
 export type AuthSession = typeof auth.$Infer.Session.session;

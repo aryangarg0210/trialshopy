@@ -11,7 +11,7 @@ A full-stack monorepo — **NestJS 11** + **Next.js 16** — with passwordless a
 | **Monorepo** | pnpm workspaces + Turborepo v2 |
 | **Backend** | NestJS 11, TypeScript 5.9 |
 | **Frontend** | Next.js 16 (App Router), React 19, React Compiler |
-| **Auth** | Better Auth v1.6 — email OTP + Google OAuth |
+| **Auth** | Better Auth v1.6 — email/password + email OTP + phone OTP |
 | **Database** | MongoDB + Prisma ORM |
 | **Job Queue** | BullMQ (Redis) + Bull Board dashboard |
 | **Email** | Nodemailer (SMTP) with HTML templates |
@@ -83,7 +83,7 @@ Auth is handled entirely by **[Better Auth](https://www.better-auth.com/)**. The
 
 ### How it works
 
-- Users sign in via **email OTP** (6-digit code, 5 min expiry) or **Google OAuth**
+- Users sign in via **email + password**, **email OTP**, or **phone OTP** (for accounts with a linked phone)
 - Sessions are stored in the database (`Session` model in Prisma)
 - The frontend sends the session cookie (`better-auth.session_token`) automatically on every request
 
@@ -91,7 +91,7 @@ Auth is handled entirely by **[Better Auth](https://www.better-auth.com/)**. The
 
 All auth behavior is configured in `apps/server/src/common/auth.ts`. To add or change something:
 
-- **Add a new social provider** — add it alongside the existing Google provider in the `socialProviders` block. Refer to the [Better Auth docs](https://www.better-auth.com/docs/authentication/social-sign-on) for the provider options.
+- **Add a social provider** — add a `socialProviders` block to the config. Refer to the [Better Auth docs](https://www.better-auth.com/docs/authentication/social-sign-on) for the provider options.
 - **Change OTP settings** (expiry, length, attempt limit) — edit the `emailOTP` plugin options in the same file.
 - **Add a Better Auth plugin** — import the plugin and add it to the `plugins` array.
 

@@ -36,7 +36,7 @@ export class PrismaService
 
 	// Indexes that Prisma cannot express in the Mongo schema. A partial unique
 	// index enforces phone-number uniqueness only when a phone is actually set,
-	// so multiple email/Google users without a phone can coexist.
+	// so multiple email/password users without a phone can coexist.
 	private async ensureIndexes() {
 		try {
 			await this.$runCommandRaw({

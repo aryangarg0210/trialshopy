@@ -12,17 +12,18 @@ seller login in the seller-admin backend, plus a separate Twilio OTP flow).
 
 | Method | Plugin | Notes |
 |---|---|---|
-| Email + password | core `emailAndPassword` | replaces legacy customer + seller password login |
-| Phone OTP (SMS) | `phoneNumber` | replaces the legacy Twilio flow; auto-creates a user on first verify |
+| Email + password | core `emailAndPassword` | **primary** signup + signin; replaces legacy customer + seller password login |
+| Phone OTP (SMS) | `phoneNumber` | **sign-in only** for phones already linked to an account; does NOT create users |
 | Email OTP | `emailOTP` | 6-digit, 5-min expiry |
-| Google | social provider | unchanged from template |
 | Bearer token / JWT | `bearer` + `jwt` | for the mobile app (EdDSA-signed JWT) |
 | Roles / ban / impersonation | `admin` | `defaultRole: "customer"`, `adminRoles: ["admin"]` |
 
-**Biometric (passkey)** is intentionally deferred — there was no legacy contract to
-match and it needs WebAuthn integration on the mobile client. The `Passkey` model
-already exists in the schema (dormant), so enabling it later is a config-only
-change in `auth.ts`, not a migration.
+Signup is **email + password only**. A user links a phone later by calling
+`/api/auth/phone-number/verify` with `updatePhoneNumber: true` while authenticated;
+that verified phone then enables phone-OTP sign-in for their account.
+
+**Biometric (passkey)** and **Google / social sign-in** are not part of this
+product and are intentionally not configured.
 
 ## Key endpoints (verified working)
 
@@ -31,7 +32,7 @@ POST /api/auth/sign-up/email          { name, email, password }
 POST /api/auth/sign-in/email          { email, password }
 GET  /api/auth/get-session
 POST /api/auth/phone-number/send-otp  { phoneNumber }
-POST /api/auth/phone-number/verify    { phoneNumber, code }   -> logs in, auto-creates user
+POST /api/auth/phone-number/verify    { phoneNumber, code }   -> signs in; 404 if phone not linked
 GET  /api/auth/token                  -> issues a JWT for the mobile app
 ```
 

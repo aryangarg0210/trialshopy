@@ -6,10 +6,6 @@ export const config = {
 	port: Number.parseInt(process.env.PORT || "3001", 10),
 	betterAuthSecret: process.env.BETTER_AUTH_SECRET || "",
 	betterAuthUrl: process.env.BETTER_AUTH_URL || "",
-	google: {
-		clientId: process.env.GOOGLE_CLIENT_ID || "",
-		clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-	},
 	urls: {
 		frontend: process.env.FRONTEND_URL || "http://localhost:3000",
 		api: process.env.API_URL || "http://localhost:3001",
