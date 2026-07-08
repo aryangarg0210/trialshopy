@@ -13,6 +13,7 @@ import { LoggerModule } from "nestjs-pino";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { BullBoardAuthMiddleware } from "./bull-board.middleware";
+import { CatalogModule } from "./catalog/catalog.module";
 import { auth } from "./common/auth";
 import { config } from "./common/config";
 import { IdentityModule } from "./identity/identity.module";
@@ -88,6 +89,7 @@ import { QUEUES } from "./scheduler/scheduler.types";
 		PrismaModule,
 		AuthModule.forRoot({ auth }),
 		IdentityModule,
+		CatalogModule,
 		SchedulerModule,
 	],
 	controllers: [AppController],
