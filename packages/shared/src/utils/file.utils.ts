@@ -1,4 +1,3 @@
-import { toast } from "sonner";
 import type { FileContentType, FileExtension } from "../types";
 
 export const fileExtensions = new Map<FileExtension, FileContentType>([
@@ -118,7 +117,6 @@ export const downloadFile = (
 	link.download = fileName;
 	link.click();
 	window.URL.revokeObjectURL(url);
-	toast.success(`${fileName} downloaded successfully`);
 };
 
 export const base64ToBuffer = (base64: string) => {
