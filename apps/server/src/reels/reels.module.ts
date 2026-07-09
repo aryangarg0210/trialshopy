@@ -1,13 +1,13 @@
 import { Module } from "@nestjs/common";
 import { PrismaModule } from "../prisma/prisma.module";
-import { CloudinaryService } from "../tryon/cloudinary.service";
+import { UploadModule } from "../upload/upload.module";
 import { ReelsController } from "./reels.controller";
 import { ReelsService } from "./reels.service";
 
 @Module({
-	imports: [PrismaModule],
+	imports: [PrismaModule, UploadModule],
 	controllers: [ReelsController],
-	providers: [ReelsService, CloudinaryService],
+	providers: [ReelsService],
 	exports: [ReelsService],
 })
 export class ReelsModule {}
