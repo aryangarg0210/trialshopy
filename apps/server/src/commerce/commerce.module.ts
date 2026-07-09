@@ -3,6 +3,12 @@ import { AddressController } from "./address/address.controller";
 import { AddressService } from "./address/address.service";
 import { CartController } from "./cart/cart.controller";
 import { CartService } from "./cart/cart.service";
+import { CouponController } from "./coupon/coupon.controller";
+import { CouponService } from "./coupon/coupon.service";
+import { CouponDomainController } from "./coupon/coupon-domain.controller";
+import { CouponDomainService } from "./coupon/coupon-domain.service";
+import { StudentVerificationController } from "./coupon/student-verification.controller";
+import { StudentVerificationService } from "./coupon/student-verification.service";
 import { OfferController } from "./offer/offer.controller";
 import { OfferService } from "./offer/offer.service";
 import { OrderController } from "./order/order.controller";
@@ -17,6 +23,9 @@ import { SubOrderService } from "./order/suborder.service";
 		SubOrderController,
 		OrderController,
 		OfferController,
+		CouponController,
+		CouponDomainController,
+		StudentVerificationController,
 	],
 	providers: [
 		AddressService,
@@ -24,6 +33,9 @@ import { SubOrderService } from "./order/suborder.service";
 		OrderService,
 		SubOrderService,
 		OfferService,
+		CouponService,
+		CouponDomainService,
+		StudentVerificationService,
 	],
 })
 export class CommerceModule {}
