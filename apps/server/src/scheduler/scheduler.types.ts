@@ -3,7 +3,12 @@ import { BullBoardQueueOptions } from "@bull-board/nestjs";
 export const EMAIL_QUEUE = "emails";
 export const SEND_EMAIL_JOB = "send-email";
 
-export const QUEUES = [{ name: EMAIL_QUEUE }] as BullBoardQueueOptions[];
+// ── Shared queue registry (used by BullBoardModule.forFeature in AppModule) ──
+// Every feature queue should be listed here so it appears in the admin dashboard.
+export const QUEUES = [
+	{ name: EMAIL_QUEUE },
+	{ name: "virtual-try-on" },
+] as BullBoardQueueOptions[];
 
 export const SCHEDULER_EVENTS = {
 	EMAIL_SEND: "scheduler.email.send",

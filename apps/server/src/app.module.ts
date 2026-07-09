@@ -22,6 +22,8 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
 import { QUEUES } from "./scheduler/scheduler.types";
 import { UploadModule } from "./upload/upload.module";
+import { TryOnModule } from "./tryon/tryon.module";
+import { ReelsModule } from "./reels/reels.module";
 
 @Module({
 	imports: [
@@ -95,6 +97,8 @@ import { UploadModule } from "./upload/upload.module";
 		CommerceModule,
 		UploadModule,
 		SchedulerModule,
+		TryOnModule,
+		ReelsModule,
 	],
 	controllers: [AppController],
 	providers: [

@@ -1,0 +1,52 @@
+// ---------------------------------------------------------------------------
+// Virtual Try-On: Persistent session log of every try-on request.
+// Captures inputs, processing status, and the final output URL so the
+// history can be replayed / audited and the result re-served from DB
+// instead of a 5-minute temp file on the Python bridge.
+// ---------------------------------------------------------------------------
+
+enum TryOnStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+model VirtualTryOnSession {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  /// The authenticated user who triggered the try-on (nullable for guest use)
+  userId String? @map("user_id") @db.ObjectId
+
+  /// Product whose garment image is being tried on
+  productId String? @map("product_id") @db.ObjectId
+
+  /// The BullMQ job ID that processes this session
+  jobId String? @map("job_id")
+
+  /// Public Cloudinary URL of the uploaded person image
+  personImageUrl String @map("person_image_url")
+
+  /// Public URL of the garment image (from product media or direct URL)
+  garmentImageUrl String @map("garment_image_url")
+
+  /// Processing status
+  status TryOnStatus @default(queued)
+
+  /// Final generated result image URL (set when status = completed)
+  resultUrl String? @map("result_url")
+
+  /// Error message (set when status = failed)
+  errorMessage String? @map("error_message")
+
+  /// Garment type hint forwarded to the bridge (upper | lower | overall)
+  clothType String @default("upper") @map("cloth_type")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@map("virtual_try_on_session")
+}
