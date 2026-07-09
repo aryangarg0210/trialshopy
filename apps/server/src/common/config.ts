@@ -30,4 +30,9 @@ export const config = {
 		user: process.env.BULL_BOARD_USER || "admin",
 		password: process.env.BULL_BOARD_PASSWORD || "admin",
 	},
+	cloudinary: {
+		cloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
+		apiKey: process.env.CLOUDINARY_API_KEY || "",
+		apiSecret: process.env.CLOUDINARY_API_SECRET || "",
+	},
 };

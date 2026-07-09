@@ -21,6 +21,7 @@ import { IdentityModule } from "./identity/identity.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
 import { QUEUES } from "./scheduler/scheduler.types";
+import { UploadModule } from "./upload/upload.module";
 
 @Module({
 	imports: [
@@ -92,6 +93,7 @@ import { QUEUES } from "./scheduler/scheduler.types";
 		IdentityModule,
 		CatalogModule,
 		CommerceModule,
+		UploadModule,
 		SchedulerModule,
 	],
 	controllers: [AppController],
