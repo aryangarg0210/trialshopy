@@ -1,5 +1,6 @@
 import { BadRequestException, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { IoAdapter } from "@nestjs/platform-socket.io";
 import type { OpenAPIObject } from "@nestjs/swagger";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { json, urlencoded } from "express";
@@ -55,6 +56,9 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule, {
 		bodyParser: false, // Required for Better Auth
 	});
+
+	// Enable Socket.io WebSocket adapter (shares port 3001 with HTTP)
+	app.useWebSocketAdapter(new IoAdapter(app));
 
 	app.enableCors({
 		origin: config.urls.cors,
