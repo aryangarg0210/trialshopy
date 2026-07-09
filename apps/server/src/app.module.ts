@@ -14,6 +14,7 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { BullBoardAuthMiddleware } from "./bull-board.middleware";
 import { CatalogModule } from "./catalog/catalog.module";
+import { CommerceModule } from "./commerce/commerce.module";
 import { auth } from "./common/auth";
 import { config } from "./common/config";
 import { IdentityModule } from "./identity/identity.module";
@@ -90,6 +91,7 @@ import { QUEUES } from "./scheduler/scheduler.types";
 		AuthModule.forRoot({ auth }),
 		IdentityModule,
 		CatalogModule,
+		CommerceModule,
 		SchedulerModule,
 	],
 	controllers: [AppController],
