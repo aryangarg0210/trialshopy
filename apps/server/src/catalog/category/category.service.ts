@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { CatalogStatus, type Category, type Prisma } from "@repo/db";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { BrowseCategoriesQuery } from "../browse/dto/browse-categories.query";
 import type { CreateCategoryDto } from "./dto/create-category.dto";
 import type { ListCategoriesQuery } from "./dto/list-categories.query";
 import type { UpdateCategoryDto } from "./dto/update-category.dto";
@@ -72,6 +73,36 @@ export class CategoryService {
 
 	async tree() {
 		const categories = await this.prisma.category.findMany({
+			orderBy: { name: "asc" },
+		});
+		return this.assembleTree(categories);
+	}
+
+	async browsePublic(query: BrowseCategoriesQuery) {
+		const { page, limit, parentId, featured, search } = query;
+		const where: Prisma.CategoryWhereInput = { status: CatalogStatus.active };
+		if (parentId === "null")
+			where.OR = [{ parentId: null }, { parentId: { isSet: false } }];
+		else if (parentId) where.parentId = parentId;
+		if (featured !== undefined) where.featured = featured;
+		if (search) where.name = { contains: search, mode: "insensitive" };
+
+		const [data, total] = await this.prisma.$transaction([
+			this.prisma.category.findMany({
+				where,
+				skip: (page - 1) * limit,
+				take: limit,
+				orderBy: { name: "asc" },
+			}),
+			this.prisma.category.count({ where }),
+		]);
+
+		return { data, page, limit, total, totalPages: Math.ceil(total / limit) };
+	}
+
+	async publicTree() {
+		const categories = await this.prisma.category.findMany({
+			where: { status: CatalogStatus.active },
 			orderBy: { name: "asc" },
 		});
 		return this.assembleTree(categories);
