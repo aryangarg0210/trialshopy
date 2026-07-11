@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common";
 import { CatalogStatus, Prisma } from "@repo/db";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { BrowseProductsQuery } from "../browse/dto/browse-products.query";
+import { ProductSort } from "../browse/dto/browse-products.query";
 import type { CreateProductDto } from "./dto/create-product.dto";
 import type { ListProductsQuery } from "./dto/list-products.query";
 import type { UpdateProductDto } from "./dto/update-product.dto";
@@ -77,6 +79,39 @@ export class ProductService {
 		return this.runList(this.buildWhere(query), query);
 	}
 
+	async browsePublic(query: BrowseProductsQuery) {
+		const where = this.buildPublicWhere(query);
+		const [data, total] = await this.prisma.$transaction([
+			this.prisma.product.findMany({
+				where,
+				skip: (query.page - 1) * query.limit,
+				take: query.limit,
+				orderBy: this.publicOrderBy(query.sort),
+			}),
+			this.prisma.product.count({ where }),
+		]);
+		return {
+			data,
+			page: query.page,
+			limit: query.limit,
+			total,
+			totalPages: Math.ceil(total / query.limit),
+		};
+	}
+
+	async getPublic(id: string) {
+		const product = await this.prisma.product.findFirst({
+			where: {
+				id,
+				status: CatalogStatus.active,
+				store: { is: { status: CatalogStatus.active } },
+			},
+			include: { variants: { where: { status: CatalogStatus.active } } },
+		});
+		if (!product) throw new NotFoundException("Product not found");
+		return product;
+	}
+
 	async getById(id: string) {
 		return this.findDetail(id);
 	}
@@ -138,6 +173,40 @@ export class ProductService {
 			this.prisma.product.count({ where }),
 		]);
 		return { data, page, limit, total, totalPages: Math.ceil(total / limit) };
+	}
+
+	private buildPublicWhere(
+		query: BrowseProductsQuery,
+	): Prisma.ProductWhereInput {
+		const { brandId, categoryId, storeId, minPrice, maxPrice, size, search } =
+			query;
+		const where: Prisma.ProductWhereInput = {
+			status: CatalogStatus.active,
+			store: { is: { status: CatalogStatus.active } },
+		};
+		if (brandId) where.brandId = brandId;
+		if (storeId) where.storeId = storeId;
+		if (search) where.productName = { contains: search, mode: "insensitive" };
+		if (categoryId)
+			where.OR = [{ categoryId }, { categoryIds: { has: categoryId } }];
+		if (size)
+			where.variants = {
+				some: { size, status: CatalogStatus.active },
+			};
+		if (minPrice !== undefined || maxPrice !== undefined) {
+			where.basePrice = {};
+			if (minPrice !== undefined) where.basePrice.gte = minPrice;
+			if (maxPrice !== undefined) where.basePrice.lte = maxPrice;
+		}
+		return where;
+	}
+
+	private publicOrderBy(
+		sort: ProductSort,
+	): Prisma.ProductOrderByWithRelationInput {
+		if (sort === ProductSort.PriceAsc) return { basePrice: "asc" };
+		if (sort === ProductSort.PriceDesc) return { basePrice: "desc" };
+		return { createdAt: "desc" };
 	}
 
 	private buildWhere(query: ListProductsQuery): Prisma.ProductWhereInput {
