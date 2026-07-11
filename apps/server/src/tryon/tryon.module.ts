@@ -1,13 +1,13 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { PrismaModule } from "../prisma/prisma.module";
-import { CloudinaryService } from "./cloudinary.service";
+import { UploadModule } from "../upload/upload.module";
 import { TryOnProcessor } from "./processors/tryon.processor";
-import { TryOnBridgeService } from "./tryon-bridge.service";
 import { TryOnController } from "./tryon.controller";
 import { TryOnGateway } from "./tryon.gateway";
 import { TryOnService } from "./tryon.service";
 import { TRYON_QUEUE } from "./tryon.types";
+import { TryOnBridgeService } from "./tryon-bridge.service";
 
 /**
  * TryOnModule
@@ -31,17 +31,12 @@ import { TRYON_QUEUE } from "./tryon.types";
 @Module({
 	imports: [
 		PrismaModule,
+		UploadModule,
 		// Register the feature queue (inherits Redis connection from BullModule.forRoot)
 		BullModule.registerQueue({ name: TRYON_QUEUE }),
 	],
 	controllers: [TryOnController],
-	providers: [
-		TryOnService,
-		TryOnBridgeService,
-		CloudinaryService,
-		TryOnGateway,
-		TryOnProcessor,
-	],
+	providers: [TryOnService, TryOnBridgeService, TryOnGateway, TryOnProcessor],
 	exports: [TryOnService],
 })
 export class TryOnModule {}

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { CloudinaryService } from "../tryon/cloudinary.service";
+import { CloudinaryService } from "../upload/cloudinary.service";
 import { CreateReelDto } from "./dto/create-reel.dto";
 import { CommentReelDto } from "./dto/comment-reel.dto";
 import { ReelAuthorType } from "@repo/db";
