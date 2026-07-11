@@ -5,6 +5,12 @@ import { CartController } from "./cart/cart.controller";
 import { CartService } from "./cart/cart.service";
 import { CommissionController } from "./commission/commission.controller";
 import { CommissionService } from "./commission/commission.service";
+import { CouponController } from "./coupon/coupon.controller";
+import { CouponService } from "./coupon/coupon.service";
+import { CouponDomainController } from "./coupon/coupon-domain.controller";
+import { CouponDomainService } from "./coupon/coupon-domain.service";
+import { StudentVerificationController } from "./coupon/student-verification.controller";
+import { StudentVerificationService } from "./coupon/student-verification.service";
 import { OfferController } from "./offer/offer.controller";
 import { OfferService } from "./offer/offer.service";
 import { OrderController } from "./order/order.controller";
@@ -23,6 +29,9 @@ import { PaymentService } from "./payment/payment.service";
 		OfferController,
 		PaymentController,
 		CommissionController,
+		CouponController,
+		CouponDomainController,
+		StudentVerificationController,
 	],
 	providers: [
 		AddressService,
@@ -32,6 +41,9 @@ import { PaymentService } from "./payment/payment.service";
 		OfferService,
 		PaymentService,
 		CommissionService,
+		CouponService,
+		CouponDomainService,
+		StudentVerificationService,
 	],
 })
 export class CommerceModule {}
