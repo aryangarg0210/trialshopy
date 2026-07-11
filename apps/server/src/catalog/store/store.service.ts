@@ -78,6 +78,14 @@ export class StoreService {
 		return store;
 	}
 
+	async getPublic(id: string) {
+		const store = await this.prisma.store.findFirst({
+			where: { id, status: CatalogStatus.active },
+		});
+		if (!store) throw new NotFoundException("Store not found");
+		return store;
+	}
+
 	async setVerification(id: string, dto: UpdateVerificationDto) {
 		await this.assertExists(id);
 		return this.prisma.store.update({
