@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { BrandController } from "./brand/brand.controller";
 import { BrandService } from "./brand/brand.service";
+import { BrowseController } from "./browse/browse.controller";
 import { CategoryController } from "./category/category.controller";
 import { CategoryService } from "./category/category.service";
 import { ProductController } from "./product/product.controller";
@@ -17,6 +18,7 @@ import { StoreService } from "./store/store.service";
 		StoreController,
 		ProductController,
 		VariantController,
+		BrowseController,
 	],
 	providers: [
 		CategoryService,
