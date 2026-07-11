@@ -7,7 +7,7 @@ import {
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import { PrismaService } from "../prisma/prisma.service";
-import { CloudinaryService } from "./cloudinary.service";
+import { CloudinaryService } from "../upload/cloudinary.service";
 import type { GenerateTryOnDto } from "./dto/generate-tryon.dto";
 import {
 	TRYON_JOB,

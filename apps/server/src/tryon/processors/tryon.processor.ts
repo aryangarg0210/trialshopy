@@ -3,7 +3,7 @@ import { Logger } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { Job } from "bullmq";
 import { PrismaService } from "../../prisma/prisma.service";
-import { CloudinaryService } from "../cloudinary.service";
+import { CloudinaryService } from "../../upload/cloudinary.service";
 import { TryOnBridgeService } from "../tryon-bridge.service";
 import {
 	TRYON_JOB,

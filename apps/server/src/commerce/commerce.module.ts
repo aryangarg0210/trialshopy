@@ -3,6 +3,8 @@ import { AddressController } from "./address/address.controller";
 import { AddressService } from "./address/address.service";
 import { CartController } from "./cart/cart.controller";
 import { CartService } from "./cart/cart.service";
+import { CommissionController } from "./commission/commission.controller";
+import { CommissionService } from "./commission/commission.service";
 import { CouponController } from "./coupon/coupon.controller";
 import { CouponService } from "./coupon/coupon.service";
 import { CouponDomainController } from "./coupon/coupon-domain.controller";
@@ -15,6 +17,8 @@ import { OrderController } from "./order/order.controller";
 import { OrderService } from "./order/order.service";
 import { SubOrderController } from "./order/suborder.controller";
 import { SubOrderService } from "./order/suborder.service";
+import { PaymentController } from "./payment/payment.controller";
+import { PaymentService } from "./payment/payment.service";
 
 @Module({
 	controllers: [
@@ -23,6 +27,8 @@ import { SubOrderService } from "./order/suborder.service";
 		SubOrderController,
 		OrderController,
 		OfferController,
+		PaymentController,
+		CommissionController,
 		CouponController,
 		CouponDomainController,
 		StudentVerificationController,
@@ -33,6 +39,8 @@ import { SubOrderService } from "./order/suborder.service";
 		OrderService,
 		SubOrderService,
 		OfferService,
+		PaymentService,
+		CommissionService,
 		CouponService,
 		CouponDomainService,
 		StudentVerificationService,
