@@ -85,16 +85,16 @@ async function bootstrap() {
 	app.setGlobalPrefix("/api");
 	app.useLogger(app.get(Logger));
 
-	const swaggerConfig = new DocumentBuilder()
-		.setTitle("TrialShopy API")
-		.setDescription("TrialShopy API Documentation")
-		.setVersion("1.0")
-		.addCookieAuth("better-auth.session_token")
-		.build();
-
-	const document = SwaggerModule.createDocument(app, swaggerConfig);
-	await mergeAuthOpenApi(document);
 	if (config.environment !== "production") {
+		const swaggerConfig = new DocumentBuilder()
+			.setTitle("TrialShopy API")
+			.setDescription("TrialShopy API Documentation")
+			.setVersion("1.0")
+			.addCookieAuth("better-auth.session_token")
+			.build();
+
+		const document = SwaggerModule.createDocument(app, swaggerConfig);
+		await mergeAuthOpenApi(document);
 		SwaggerModule.setup("docs", app, document);
 	}
 
