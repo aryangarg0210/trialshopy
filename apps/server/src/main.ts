@@ -28,6 +28,15 @@ const EXPOSED_AUTH_PATHS = new Set([
 	"/change-password",
 ]);
 
+// Clearer summaries for the phone-OTP login flow, whose default names don't make
+// the two steps (or verify's dual role) obvious.
+const AUTH_PATH_SUMMARIES: Record<string, string> = {
+	"/phone-number/send-otp":
+		"Phone login/verification — send OTP to a phone number",
+	"/phone-number/verify":
+		"Phone login/verification — verify the OTP (signs in an existing phone; pass updatePhoneNumber + a session to link a phone to your account)",
+};
+
 // Better Auth mounts /api/auth/* via a catch-all, so those routes don't show up
 // in NestJS's Swagger scan. Its openAPI plugin can generate their schema, which
 // we fold (filtered) into the same /docs so signup/signin/etc. are visible.
@@ -40,6 +49,11 @@ async function mergeAuthOpenApi(document: OpenAPIObject) {
 		const paths = document.paths as Record<string, unknown>;
 		for (const [path, def] of Object.entries(authSchema.paths ?? {})) {
 			if (!EXPOSED_AUTH_PATHS.has(path)) continue;
+			const summary = AUTH_PATH_SUMMARIES[path];
+			if (summary) {
+				const op = (def as { post?: { summary?: string } }).post;
+				if (op) op.summary = summary;
+			}
 			paths[`/api/auth${path}`] = def;
 		}
 		document.components ??= {};
