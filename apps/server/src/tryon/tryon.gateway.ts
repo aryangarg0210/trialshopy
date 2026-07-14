@@ -10,7 +10,11 @@ import {
 	WebSocketGateway,
 	WebSocketServer,
 } from "@nestjs/websockets";
+import { fromNodeHeaders } from "better-auth/node";
 import { Server, Socket } from "socket.io";
+import { auth } from "../common/auth";
+import { config } from "../common/config";
+import { TryOnService } from "./tryon.service";
 import {
 	TRYON_EVENTS,
 	TRYON_SESSION_UPDATED_EVENT,
@@ -46,7 +50,7 @@ import {
  */
 @WebSocketGateway({
 	cors: {
-		origin: process.env.CORS_URLS?.split(",") ?? ["http://localhost:3000"],
+		origin: config.urls.cors,
 		credentials: true,
 	},
 	namespace: "/tryon",
@@ -60,7 +64,9 @@ export class TryOnGateway
 
 	private readonly logger = new Logger(TryOnGateway.name);
 
-	afterInit(server: Server) {
+	constructor(private readonly tryOnService: TryOnService) {}
+
+	afterInit(_server: Server) {
 		this.logger.log("TryOn WebSocket Gateway initialised.");
 	}
 
@@ -84,13 +90,31 @@ export class TryOnGateway
 	 * so it will receive all future events for that session.
 	 */
 	@SubscribeMessage(TRYON_EVENTS.JOIN_SESSION)
-	handleJoinSession(
+	async handleJoinSession(
 		@ConnectedSocket() client: Socket,
 		@MessageBody() payload: { sessionId: string },
 	) {
 		const { sessionId } = payload;
 		if (!sessionId) {
 			client.emit("error", { message: "sessionId is required." });
+			return;
+		}
+
+		// Authenticate the socket from its handshake and confirm the caller owns
+		// this session — otherwise any client could join another user's room.
+		const authSession = await auth.api.getSession({
+			headers: fromNodeHeaders(client.handshake.headers),
+		});
+		const userId = authSession?.user?.id;
+		if (!userId) {
+			client.emit("error", { message: "Authentication required." });
+			return;
+		}
+
+		try {
+			await this.tryOnService.getSessionById(sessionId, userId);
+		} catch {
+			client.emit("error", { message: "Try-on session not found." });
 			return;
 		}
 
@@ -152,9 +176,7 @@ export class TryOnGateway
 				break;
 		}
 
-		this.logger.log(
-			`Emitted status=${status} to room ${room}`,
-		);
+		this.logger.log(`Emitted status=${status} to room ${room}`);
 	}
 
 	// ── Helper ────────────────────────────────────────────────────────────────

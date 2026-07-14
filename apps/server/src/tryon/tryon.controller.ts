@@ -64,7 +64,8 @@ Alternatively, poll \`GET /api/tryon/sessions/:id\` for the current status.
 		description: "Session created and queued for processing.",
 	})
 	@ApiBadRequestResponse({
-		description: "Validation error — missing/invalid personImage or garmentImage.",
+		description:
+			"Validation error — missing/invalid personImage or garmentImage.",
 	})
 	async generate(
 		@Body() dto: GenerateTryOnDto,
@@ -126,7 +127,8 @@ Alternatively, poll \`GET /api/tryon/sessions/:id\` for the current status.
 	})
 	async getSession(
 		@Param("id") id: string,
-	): Promise<TryOnSessionDetailDto> {
-		return this.tryOnService.getSessionById(id) as unknown as TryOnSessionDetailDto;
+		@Session() session: UserSession<typeof auth>,
+	) {
+		return this.tryOnService.getSessionById(id, session.user.id);
 	}
 }

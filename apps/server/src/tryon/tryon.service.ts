@@ -1,19 +1,15 @@
+import { InjectQueue } from "@nestjs/bullmq";
 import {
 	BadRequestException,
 	Injectable,
 	Logger,
 	NotFoundException,
 } from "@nestjs/common";
-import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import { PrismaService } from "../prisma/prisma.service";
 import { CloudinaryService } from "../upload/cloudinary.service";
 import type { GenerateTryOnDto } from "./dto/generate-tryon.dto";
-import {
-	TRYON_JOB,
-	TRYON_QUEUE,
-	type TryOnJobPayload,
-} from "./tryon.types";
+import { TRYON_JOB, TRYON_QUEUE, type TryOnJobPayload } from "./tryon.types";
 
 /** Allowed data-URI prefixes for person images. */
 const ALLOWED_IMAGE_PREFIXES = [
@@ -82,9 +78,7 @@ export class TryOnService {
 		if (personImage.startsWith("data:image")) {
 			this.logger.log("Uploading person image to Cloudinary…");
 			personImageUrl = await this.cloudinary.uploadBase64Image(personImage);
-			this.logger.log(
-				`Person image uploaded: ${personImageUrl}`,
-			);
+			this.logger.log(`Person image uploaded: ${personImageUrl}`);
 		}
 
 		// ── Create DB session ───────────────────────────────────────────────
@@ -127,14 +121,13 @@ export class TryOnService {
 
 	// ── Query sessions ──────────────────────────────────────────────────────
 
-	async getSessionById(sessionId: string) {
+	async getSessionById(sessionId: string, userId: string) {
 		const session = await this.prisma.virtualTryOnSession.findUnique({
 			where: { id: sessionId },
 		});
-		if (!session) {
-			throw new NotFoundException(
-				`Try-on session ${sessionId} not found.`,
-			);
+		// Scope by owner: never reveal another user's session (or its existence).
+		if (!session || session.userId !== userId) {
+			throw new NotFoundException(`Try-on session ${sessionId} not found.`);
 		}
 		return session;
 	}
