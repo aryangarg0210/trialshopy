@@ -47,6 +47,9 @@ export class AddressResponseDto {
 	@ApiProperty({ nullable: true, example: "2026-07-09T10:00:00.000Z" })
 	lastUsedAt!: Date | null;
 
+	@ApiProperty({ example: false })
+	isDefault!: boolean;
+
 	@ApiProperty({ example: "2026-07-09T10:00:00.000Z" })
 	createdAt!: Date;
 
