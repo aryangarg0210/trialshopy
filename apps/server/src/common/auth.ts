@@ -17,6 +17,20 @@ import { sendSms } from "./utils/sms.utils";
 
 const mailService = new MailService();
 
+// Canonicalize phone numbers to E.164 so send-otp, verify, linking, and the
+// user lookup all key off the same string. Without this, a phone stored as
+// "+919172312737" is unreachable when the client sends the bare "9172312737",
+// producing a spurious "no account found". India (+91) is assumed for bare
+// national numbers, matching the app's default country.
+function normalizePhoneNumber(raw?: string): string | undefined {
+	if (!raw) return raw;
+	if (raw.trim().startsWith("+")) return `+${raw.replace(/\D/g, "")}`;
+	const national = raw.replace(/\D/g, "").replace(/^0+/, "");
+	if (national.length === 12 && national.startsWith("91"))
+		return `+${national}`;
+	return `+91${national}`;
+}
+
 // MongoDB connects through the datasource `url` in schema.prisma
 // (no driver adapter, unlike the Postgres template).
 const prismaClient = new PrismaClient({
@@ -44,17 +58,29 @@ export const auth = betterAuth({
 	// instead of the plugin's internal 500 — and must never create an account.
 	hooks: {
 		before: createAuthMiddleware(async (ctx) => {
-			if (ctx.path !== "/phone-number/verify") return;
-			if (ctx.body?.updatePhoneNumber) return;
+			const isPhonePath =
+				ctx.path.startsWith("/phone-number/") ||
+				ctx.path === "/sign-in/phone-number";
+			if (!isPhonePath) return;
 
-			const existing = await prismaClient.user.findFirst({
-				where: { phoneNumber: ctx.body?.phoneNumber },
-			});
-			if (!existing) {
-				throw new APIError("NOT_FOUND", {
-					code: "USER_NOT_FOUND",
-					message: "No account found with this phone number.",
+			// Normalize before the plugin runs so OTP keying, storage, and lookup agree.
+			if (ctx.body?.phoneNumber) {
+				ctx.body.phoneNumber = normalizePhoneNumber(ctx.body.phoneNumber);
+			}
+
+			// A verify without `updatePhoneNumber` (i.e. a login attempt) for a phone no
+			// account owns must fail cleanly with "no user found" instead of the plugin's
+			// internal 500 — and must never create an account.
+			if (ctx.path === "/phone-number/verify" && !ctx.body?.updatePhoneNumber) {
+				const existing = await prismaClient.user.findFirst({
+					where: { phoneNumber: ctx.body?.phoneNumber },
 				});
+				if (!existing) {
+					throw new APIError("NOT_FOUND", {
+						code: "USER_NOT_FOUND",
+						message: "No account found with this phone number.",
+					});
+				}
 			}
 		}),
 	},
