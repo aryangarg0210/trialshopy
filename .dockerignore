@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/.next
+**/out
+**/.turbo
+**/coverage
+**/generated/prisma
+legacy
+.git
+.github
+.vscode
+.idea
+**/.env
+**/.env.*
+Dockerfile
+.dockerignore

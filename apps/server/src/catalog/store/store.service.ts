@@ -78,6 +78,14 @@ export class StoreService {
 		return store;
 	}
 
+	async getPublic(id: string) {
+		const store = await this.prisma.store.findFirst({
+			where: { id, status: CatalogStatus.active },
+		});
+		if (!store) throw new NotFoundException("Store not found");
+		return store;
+	}
+
 	async setVerification(id: string, dto: UpdateVerificationDto) {
 		await this.assertExists(id);
 		return this.prisma.store.update({
@@ -93,6 +101,53 @@ export class StoreService {
 			data: { status: CatalogStatus.inactive },
 		});
 		return { deactivated: true };
+	}
+
+	async follow(userId: string, storeId: string) {
+		await this.assertActive(storeId);
+		await this.setFollow(storeId, userId, true);
+		return this.followState(storeId, userId);
+	}
+
+	async unfollow(userId: string, storeId: string) {
+		await this.assertActive(storeId);
+		await this.setFollow(storeId, userId, false);
+		return this.followState(storeId, userId);
+	}
+
+	private async setFollow(storeId: string, userId: string, follow: boolean) {
+		const store = await this.prisma.store.findUnique({
+			where: { id: storeId },
+			select: { followerIds: true },
+		});
+		const current = store?.followerIds ?? [];
+		const has = current.includes(userId);
+		if (follow === has) return;
+		const next = follow
+			? [...current, userId]
+			: current.filter((id) => id !== userId);
+		await this.prisma.store.update({
+			where: { id: storeId },
+			data: { followerIds: { set: next }, followerCount: next.length },
+		});
+	}
+
+	private async followState(storeId: string, userId: string) {
+		const store = await this.prisma.store.findUnique({
+			where: { id: storeId },
+			select: { followerIds: true, followerCount: true },
+		});
+		return {
+			following: store?.followerIds.includes(userId) ?? false,
+			followerCount: store?.followerCount ?? 0,
+		};
+	}
+
+	private async assertActive(id: string) {
+		const store = await this.prisma.store.count({
+			where: { id, status: CatalogStatus.active },
+		});
+		if (!store) throw new NotFoundException("Store not found");
 	}
 
 	private async getSellerProfileId(userId: string) {

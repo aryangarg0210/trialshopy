@@ -35,6 +35,28 @@ export class StoreController {
 		return this.storeService.create(session.user.id, dto);
 	}
 
+	@Post(":id/follow")
+	@ApiOperation({ summary: "Follow a store" })
+	@ApiOkResponse({ schema: { example: { following: true, followerCount: 1 } } })
+	follow(
+		@Session() session: UserSession<typeof auth>,
+		@Param("id") id: string,
+	) {
+		return this.storeService.follow(session.user.id, id);
+	}
+
+	@Delete(":id/follow")
+	@ApiOperation({ summary: "Unfollow a store" })
+	@ApiOkResponse({
+		schema: { example: { following: false, followerCount: 0 } },
+	})
+	unfollow(
+		@Session() session: UserSession<typeof auth>,
+		@Param("id") id: string,
+	) {
+		return this.storeService.unfollow(session.user.id, id);
+	}
+
 	@Get("me")
 	@Roles(["seller"])
 	@ApiOperation({ summary: "Get the current seller's store" })

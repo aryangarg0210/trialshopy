@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { CatalogStatus, type Prisma } from "@repo/db";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { BrowseBrandsQuery } from "../browse/dto/browse-brands.query";
 import type { CreateBrandDto } from "./dto/create-brand.dto";
 import type { ListBrandsQuery } from "./dto/list-brands.query";
 import type { UpdateBrandDto } from "./dto/update-brand.dto";
@@ -37,6 +38,26 @@ export class BrandService {
 		const brand = await this.prisma.brand.findUnique({ where: { id } });
 		if (!brand) throw new NotFoundException("Brand not found");
 		return brand;
+	}
+
+	async browsePublic(query: BrowseBrandsQuery) {
+		const { page, limit, isPopular, categoryId, search } = query;
+		const where: Prisma.BrandWhereInput = { status: CatalogStatus.active };
+		if (isPopular !== undefined) where.isPopular = isPopular;
+		if (categoryId) where.categoryIds = { has: categoryId };
+		if (search) where.name = { contains: search, mode: "insensitive" };
+
+		const [data, total] = await this.prisma.$transaction([
+			this.prisma.brand.findMany({
+				where,
+				skip: (page - 1) * limit,
+				take: limit,
+				orderBy: { createdAt: "desc" },
+			}),
+			this.prisma.brand.count({ where }),
+		]);
+
+		return { data, page, limit, total, totalPages: Math.ceil(total / limit) };
 	}
 
 	async list(query: ListBrandsQuery) {

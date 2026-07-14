@@ -45,6 +45,7 @@ model Address {
   country        String   @default("India")
   location       GeoPoint? // 2dsphere index created out-of-band (Prisma limitation)
   lastUsedAt     DateTime? @map("last_used_at")
+  isDefault      Boolean   @default(false) @map("is_default")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

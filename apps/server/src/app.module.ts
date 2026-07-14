@@ -17,13 +17,14 @@ import { CatalogModule } from "./catalog/catalog.module";
 import { CommerceModule } from "./commerce/commerce.module";
 import { auth } from "./common/auth";
 import { config } from "./common/config";
+import { EngagementModule } from "./engagement/engagement.module";
 import { IdentityModule } from "./identity/identity.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { ReelsModule } from "./reels/reels.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
 import { QUEUES } from "./scheduler/scheduler.types";
-import { UploadModule } from "./upload/upload.module";
 import { TryOnModule } from "./tryon/tryon.module";
-import { ReelsModule } from "./reels/reels.module";
+import { UploadModule } from "./upload/upload.module";
 
 @Module({
 	imports: [
@@ -95,6 +96,7 @@ import { ReelsModule } from "./reels/reels.module";
 		IdentityModule,
 		CatalogModule,
 		CommerceModule,
+		EngagementModule,
 		UploadModule,
 		SchedulerModule,
 		TryOnModule,

@@ -10,9 +10,40 @@ export class AddressService {
 	constructor(private readonly prisma: PrismaService) {}
 
 	async create(userId: string, dto: CreateAddressDto) {
-		return this.prisma.address.create({
-			data: { ...dto, ownerId: userId, ownerType: AddressOwnerType.user },
+		const existing = await this.prisma.address.count({
+			where: {
+				ownerId: userId,
+				ownerType: AddressOwnerType.user,
+				status: GenericStatus.active,
+			},
 		});
+		return this.prisma.address.create({
+			data: {
+				...dto,
+				ownerId: userId,
+				ownerType: AddressOwnerType.user,
+				isDefault: existing === 0,
+			},
+		});
+	}
+
+	async setDefault(userId: string, id: string) {
+		await this.assertOwned(userId, id);
+		await this.prisma.$transaction([
+			this.prisma.address.updateMany({
+				where: {
+					ownerId: userId,
+					ownerType: AddressOwnerType.user,
+					isDefault: true,
+				},
+				data: { isDefault: false },
+			}),
+			this.prisma.address.update({
+				where: { id },
+				data: { isDefault: true },
+			}),
+		]);
+		return this.assertOwned(userId, id);
 	}
 
 	async listMine(userId: string) {

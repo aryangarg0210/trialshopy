@@ -61,6 +61,18 @@ export class AddressController {
 		return this.addressService.updateMine(session.user.id, id, dto);
 	}
 
+	@Patch("mine/:id/default")
+	@ApiOperation({
+		summary: "Set one of the current user's addresses as default",
+	})
+	@ApiOkResponse({ type: AddressResponseDto })
+	setDefault(
+		@Session() session: UserSession<typeof auth>,
+		@Param("id") id: string,
+	) {
+		return this.addressService.setDefault(session.user.id, id);
+	}
+
 	@Delete("mine/:id")
 	@ApiOperation({ summary: "Delete one of the current user's addresses" })
 	@ApiOkResponse({ schema: { example: { deactivated: true } } })
