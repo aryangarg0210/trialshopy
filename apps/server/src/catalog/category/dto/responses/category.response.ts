@@ -47,6 +47,10 @@ export class CategoryDetailResponseDto extends CategoryResponseDto {
 }
 
 export class CategoryTreeNodeResponseDto extends CategoryResponseDto {
-	@ApiProperty({ type: [CategoryTreeNodeResponseDto] })
+	@ApiProperty({
+		type: [CategoryResponseDto],
+		description:
+			"Direct child categories. Each child has this same shape and may contain its own nested `children` recursively.",
+	})
 	children!: CategoryTreeNodeResponseDto[];
 }
