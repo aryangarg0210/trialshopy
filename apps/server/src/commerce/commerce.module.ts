@@ -19,6 +19,8 @@ import { SubOrderController } from "./order/suborder.controller";
 import { SubOrderService } from "./order/suborder.service";
 import { PaymentController } from "./payment/payment.controller";
 import { PaymentService } from "./payment/payment.service";
+import { WishlistController } from "./wishlist/wishlist.controller";
+import { WishlistService } from "./wishlist/wishlist.service";
 
 @Module({
 	controllers: [
@@ -32,6 +34,7 @@ import { PaymentService } from "./payment/payment.service";
 		CouponController,
 		CouponDomainController,
 		StudentVerificationController,
+		WishlistController,
 	],
 	providers: [
 		AddressService,
@@ -44,6 +47,7 @@ import { PaymentService } from "./payment/payment.service";
 		CouponService,
 		CouponDomainService,
 		StudentVerificationService,
+		WishlistService,
 	],
 })
 export class CommerceModule {}
