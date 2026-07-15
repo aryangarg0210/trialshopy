@@ -5,20 +5,23 @@ import {
 	Get,
 	Param,
 	Post,
+	Put,
 	Query,
-	UploadedFile,
-	UseInterceptors,
-	ParseIntPipe,
-	DefaultValuePipe,
-	BadRequestException,
 } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
-import { ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
+import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+	AllowAnonymous,
+	Session,
+	type UserSession,
+} from "@thallesp/nestjs-better-auth";
 import type { auth } from "../common/auth";
-import { ReelsService } from "./reels.service";
-import { CreateReelDto } from "./dto/create-reel.dto";
 import { CommentReelDto } from "./dto/comment-reel.dto";
+import { CreateReelDto } from "./dto/create-reel.dto";
+import { ListReelsQuery } from "./dto/list-reels.query";
+import { ReelReactionDto } from "./dto/reel-reaction.dto";
+import { PaginatedReelsResponseDto } from "./dto/responses/paginated-reels.response";
+import { ReelResponseDto } from "./dto/responses/reel.response";
+import { ReelsService } from "./reels.service";
 
 @ApiTags("reels")
 @Controller("reels")
@@ -26,83 +29,72 @@ export class ReelsController {
 	constructor(private readonly reelsService: ReelsService) {}
 
 	@Post()
-	@UseInterceptors(FileInterceptor("video"))
-	@ApiConsumes("multipart/form-data")
-	@ApiOperation({ summary: "Upload a new reel video" })
-	async uploadReel(
+	@ApiOperation({
+		summary: "Publish a new reel (video uploaded via signed upload)",
+	})
+	@ApiOkResponse({ type: ReelResponseDto })
+	create(
 		@Session() session: UserSession<typeof auth>,
-		@Body() createReelDto: CreateReelDto,
-		@UploadedFile() file?: any,
+		@Body() dto: CreateReelDto,
 	) {
-		if (!file) {
-			throw new BadRequestException("Video file is required");
-		}
-		
-		// In a real app we might determine authorType from roles.
-		// For simplicity, we map "customer" for generic users and "seller" for sellers.
-		const authorType = session.user.role === "seller" ? "seller" : "customer";
-
-		return this.reelsService.createReel(
-			session.user.id,
-			authorType,
-			file.buffer,
-			createReelDto,
-		);
+		return this.reelsService.create(session.user.id, session.user.role, dto);
 	}
 
 	@Get()
-	@ApiOperation({ summary: "Get all reels for global feed" })
-	async getAllReels(
-		@Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
-		@Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number,
-	) {
-		return this.reelsService.findAll(page, limit);
+	@AllowAnonymous()
+	@ApiOperation({ summary: "Global reels feed (public)" })
+	@ApiOkResponse({ type: PaginatedReelsResponseDto })
+	findAll(@Query() query: ListReelsQuery) {
+		return this.reelsService.findAll(query);
 	}
 
 	@Get("me")
-	@ApiOperation({ summary: "Get reels uploaded by current user" })
-	async getMyReels(
+	@ApiOperation({ summary: "Reels published by the current user" })
+	@ApiOkResponse({ type: PaginatedReelsResponseDto })
+	findMine(
 		@Session() session: UserSession<typeof auth>,
-		@Query("page", new DefaultValuePipe(1), ParseIntPipe) page: number,
-		@Query("limit", new DefaultValuePipe(10), ParseIntPipe) limit: number,
+		@Query() query: ListReelsQuery,
 	) {
-		return this.reelsService.findByAuthor(session.user.id, page, limit);
+		return this.reelsService.findByAuthor(session.user.id, query);
+	}
+
+	@Get(":id")
+	@AllowAnonymous()
+	@ApiOperation({ summary: "Get a single reel (public)" })
+	@ApiOkResponse({ type: ReelResponseDto })
+	getById(@Param("id") id: string) {
+		return this.reelsService.getById(id);
 	}
 
 	@Delete(":id")
-	@ApiOperation({ summary: "Delete a reel" })
-	async deleteReel(
+	@ApiOperation({ summary: "Delete one of the current user's reels" })
+	@ApiOkResponse({ schema: { example: { deleted: true } } })
+	remove(
 		@Session() session: UserSession<typeof auth>,
 		@Param("id") id: string,
 	) {
-		return this.reelsService.deleteReel(id, session.user.id);
+		return this.reelsService.remove(id, session.user.id);
 	}
 
-	@Post(":id/like")
-	@ApiOperation({ summary: "Toggle like on a reel" })
-	async toggleLike(
+	@Put(":id/reaction")
+	@ApiOperation({ summary: "Like, dislike, or clear a reaction on a reel" })
+	@ApiOkResponse({ type: ReelResponseDto })
+	react(
 		@Session() session: UserSession<typeof auth>,
 		@Param("id") id: string,
+		@Body() dto: ReelReactionDto,
 	) {
-		return this.reelsService.toggleLike(id, session.user.id);
-	}
-
-	@Post(":id/dislike")
-	@ApiOperation({ summary: "Toggle dislike on a reel" })
-	async toggleDislike(
-		@Session() session: UserSession<typeof auth>,
-		@Param("id") id: string,
-	) {
-		return this.reelsService.toggleDislike(id, session.user.id);
+		return this.reelsService.react(id, session.user.id, dto.reaction);
 	}
 
 	@Post(":id/comments")
 	@ApiOperation({ summary: "Add a comment to a reel" })
-	async addComment(
+	@ApiOkResponse({ type: ReelResponseDto })
+	addComment(
 		@Session() session: UserSession<typeof auth>,
 		@Param("id") id: string,
-		@Body() commentDto: CommentReelDto,
+		@Body() dto: CommentReelDto,
 	) {
-		return this.reelsService.addComment(id, session.user.id, commentDto);
+		return this.reelsService.addComment(id, session.user.id, dto);
 	}
 }

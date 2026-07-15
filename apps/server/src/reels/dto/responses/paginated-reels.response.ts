@@ -1,0 +1,19 @@
+import { ApiProperty } from "@nestjs/swagger";
+import { ReelResponseDto } from "./reel.response";
+
+export class PaginatedReelsResponseDto {
+	@ApiProperty({ type: [ReelResponseDto] })
+	data!: ReelResponseDto[];
+
+	@ApiProperty({ example: 1 })
+	page!: number;
+
+	@ApiProperty({ example: 10 })
+	limit!: number;
+
+	@ApiProperty({ example: 42 })
+	total!: number;
+
+	@ApiProperty({ example: 5 })
+	totalPages!: number;
+}

@@ -1,12 +1,8 @@
-import { IsString, IsNotEmpty, MaxLength } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsString, MaxLength } from "class-validator";
 
 export class CommentReelDto {
-	@ApiProperty({
-		description: "The comment text",
-		example: "Looks great!",
-		maxLength: 500,
-	})
+	@ApiProperty({ example: "Looks great!", maxLength: 500 })
 	@IsString()
 	@IsNotEmpty()
 	@MaxLength(500)
