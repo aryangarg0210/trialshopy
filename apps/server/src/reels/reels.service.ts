@@ -1,175 +1,158 @@
-import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
+import {
+	BadRequestException,
+	ForbiddenException,
+	Injectable,
+	NotFoundException,
+} from "@nestjs/common";
+import { type Prisma, ReelAuthorType } from "@repo/db";
 import { PrismaService } from "../prisma/prisma.service";
-import { CloudinaryService } from "../upload/cloudinary.service";
-import { CreateReelDto } from "./dto/create-reel.dto";
-import { CommentReelDto } from "./dto/comment-reel.dto";
-import { ReelAuthorType } from "@repo/db";
+import type { CommentReelDto } from "./dto/comment-reel.dto";
+import type { CreateReelDto } from "./dto/create-reel.dto";
+import type { ListReelsQuery } from "./dto/list-reels.query";
+import type { ReelReaction } from "./dto/reel-reaction.dto";
 
 @Injectable()
 export class ReelsService {
-	constructor(
-		private readonly prisma: PrismaService,
-		private readonly cloudinary: CloudinaryService,
-	) {}
+	constructor(private readonly prisma: PrismaService) {}
 
-	async createReel(
+	async create(
 		userId: string,
-		authorType: ReelAuthorType,
-		videoBuffer: Buffer,
-		createReelDto: CreateReelDto,
+		role: string | null | undefined,
+		dto: CreateReelDto,
 	) {
-		const videoUrl = await this.cloudinary.uploadVideo(videoBuffer);
+		let authorType: ReelAuthorType =
+			role === "seller" ? ReelAuthorType.seller : ReelAuthorType.customer;
+
+		if (dto.storeId) {
+			await this.assertOwnsStore(userId, dto.storeId);
+			authorType = ReelAuthorType.store;
+		}
 
 		return this.prisma.reel.create({
 			data: {
 				authorId: userId,
 				authorType,
-				video: videoUrl,
-				caption: createReelDto.caption,
+				storeId: dto.storeId ?? null,
+				video: dto.video,
+				caption: dto.caption,
 			},
 		});
 	}
 
-	async findAll(page = 1, limit = 10) {
-		const skip = (page - 1) * limit;
-
-		const [reels, total] = await Promise.all([
-			this.prisma.reel.findMany({
-				skip,
-				take: limit,
-				orderBy: { createdAt: "desc" },
-			}),
-			this.prisma.reel.count(),
-		]);
-
-		const populatedReels = await this.populateAuthors(reels);
-
-		return {
-			data: populatedReels,
-			total,
-			page,
-			limit,
-			totalPages: Math.ceil(total / limit),
-		};
+	async findAll(query: ListReelsQuery) {
+		return this.runList(query);
 	}
 
-	async findByAuthor(authorId: string, page = 1, limit = 10) {
-		const skip = (page - 1) * limit;
-
-		const [reels, total] = await Promise.all([
-			this.prisma.reel.findMany({
-				where: { authorId },
-				skip,
-				take: limit,
-				orderBy: { createdAt: "desc" },
-			}),
-			this.prisma.reel.count({ where: { authorId } }),
-		]);
-
-		const populatedReels = await this.populateAuthors(reels);
-
-		return {
-			data: populatedReels,
-			total,
-			page,
-			limit,
-			totalPages: Math.ceil(total / limit),
-		};
+	async findByAuthor(authorId: string, query: ListReelsQuery) {
+		return this.runList({ ...query, authorId });
 	}
 
-	async deleteReel(id: string, userId: string) {
+	async getById(id: string) {
 		const reel = await this.prisma.reel.findUnique({ where: { id } });
-		if (!reel) {
-			throw new NotFoundException("Reel not found");
-		}
+		if (!reel) throw new NotFoundException("Reel not found");
+		const [withAuthor] = await this.populateAuthors([reel]);
+		return withAuthor;
+	}
 
-		if (reel.authorId !== userId) {
+	async remove(id: string, userId: string) {
+		const reel = await this.prisma.reel.findUnique({
+			where: { id },
+			select: { authorId: true },
+		});
+		if (!reel) throw new NotFoundException("Reel not found");
+		if (reel.authorId !== userId)
 			throw new ForbiddenException("You can only delete your own reels");
-		}
-
-		return this.prisma.reel.delete({ where: { id } });
+		await this.prisma.reel.delete({ where: { id } });
+		return { deleted: true };
 	}
 
-	async toggleLike(id: string, userId: string) {
-		const reel = await this.prisma.reel.findUnique({ where: { id } });
-		if (!reel) {
-			throw new NotFoundException("Reel not found");
-		}
+	async react(id: string, userId: string, reaction: ReelReaction) {
+		await this.assertExists(id);
 
-		const isLiked = reel.likeIds.includes(userId);
-		
-		if (isLiked) {
-			return this.prisma.reel.update({
-				where: { id },
-				data: { likeIds: { set: reel.likeIds.filter((uid) => uid !== userId) } },
-			});
-		}
-		
-		return this.prisma.reel.update({
-			where: { id },
-			data: { likeIds: { push: userId } },
+		const like = { like_ids: { $oid: userId } };
+		const dislike = { dislike_ids: { $oid: userId } };
+		const update =
+			reaction === "like"
+				? { $addToSet: like, $pull: dislike }
+				: reaction === "dislike"
+					? { $addToSet: dislike, $pull: like }
+					: { $pull: { ...like, ...dislike } };
+
+		await this.prisma.$runCommandRaw({
+			update: "reel",
+			updates: [{ q: { _id: { $oid: id } }, u: update }],
 		});
-	}
-
-	async toggleDislike(id: string, userId: string) {
-		const reel = await this.prisma.reel.findUnique({ where: { id } });
-		if (!reel) {
-			throw new NotFoundException("Reel not found");
-		}
-
-		const isDisliked = reel.dislikeIds.includes(userId);
-		
-		if (isDisliked) {
-			return this.prisma.reel.update({
-				where: { id },
-				data: { dislikeIds: { set: reel.dislikeIds.filter((uid) => uid !== userId) } },
-			});
-		}
-		
-		return this.prisma.reel.update({
-			where: { id },
-			data: { dislikeIds: { push: userId } },
-		});
+		return this.prisma.reel.findUnique({ where: { id } });
 	}
 
 	async addComment(id: string, userId: string, dto: CommentReelDto) {
-		const reel = await this.prisma.reel.findUnique({ where: { id } });
-		if (!reel) {
-			throw new NotFoundException("Reel not found");
-		}
-
+		await this.assertExists(id);
 		return this.prisma.reel.update({
 			where: { id },
 			data: {
 				comments: {
-					push: {
-						userId,
-						comment: dto.comment,
-						createdAt: new Date(),
-					},
+					push: { userId, comment: dto.comment, createdAt: new Date() },
 				},
 			},
 		});
 	}
 
-	// Helper to manually fetch and attach user details since authorId is loosely typed in DB
-	private async populateAuthors(reels: any[]) {
+	private async runList(query: ListReelsQuery & { authorId?: string }) {
+		const { page, limit, authorId } = query;
+		const where: Prisma.ReelWhereInput = {};
+		if (authorId) where.authorId = authorId;
+
+		const [reels, total] = await this.prisma.$transaction([
+			this.prisma.reel.findMany({
+				where,
+				skip: (page - 1) * limit,
+				take: limit,
+				orderBy: { createdAt: "desc" },
+			}),
+			this.prisma.reel.count({ where }),
+		]);
+		return {
+			data: await this.populateAuthors(reels),
+			page,
+			limit,
+			total,
+			totalPages: Math.ceil(total / limit),
+		};
+	}
+
+	private async assertExists(id: string) {
+		const reel = await this.prisma.reel.findUnique({
+			where: { id },
+			select: { id: true },
+		});
+		if (!reel) throw new NotFoundException("Reel not found");
+	}
+
+	private async assertOwnsStore(userId: string, storeId: string) {
+		const profile = await this.prisma.sellerProfile.findUnique({
+			where: { userId },
+			select: { id: true },
+		});
+		const store = profile
+			? await this.prisma.store.findFirst({
+					where: { id: storeId, sellerId: profile.id },
+					select: { id: true },
+				})
+			: null;
+		if (!store) throw new BadRequestException("Store does not belong to you");
+	}
+
+	private async populateAuthors<T extends { authorId: string }>(reels: T[]) {
 		if (!reels.length) return [];
-
-		// Extract all unique author IDs
 		const authorIds = [...new Set(reels.map((r) => r.authorId))];
-
-		// Fetch basic user data for all authors
 		const users = await this.prisma.user.findMany({
 			where: { id: { in: authorIds } },
-			select: { id: true, name: true, email: true, image: true, role: true },
+			select: { id: true, name: true, image: true },
 		});
-
 		const userMap = new Map(users.map((u) => [u.id, u]));
-
 		return reels.map((reel) => ({
 			...reel,
-			author: userMap.get(reel.authorId) || null,
+			author: userMap.get(reel.authorId) ?? null,
 		}));
 	}
 }
