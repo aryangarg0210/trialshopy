@@ -19,6 +19,8 @@ import { auth } from "./common/auth";
 import { config } from "./common/config";
 import { EngagementModule } from "./engagement/engagement.module";
 import { IdentityModule } from "./identity/identity.module";
+import { LiveModule } from "./live/live.module";
+import { OpsModule } from "./ops/ops.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { ReelsModule } from "./reels/reels.module";
 import { SchedulerModule } from "./scheduler/scheduler.module";
@@ -97,6 +99,8 @@ import { UploadModule } from "./upload/upload.module";
 		CatalogModule,
 		CommerceModule,
 		EngagementModule,
+		LiveModule,
+		OpsModule,
 		UploadModule,
 		SchedulerModule,
 		TryOnModule,
